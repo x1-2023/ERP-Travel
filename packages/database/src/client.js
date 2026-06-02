@@ -1,0 +1,16 @@
+// ============================================================
+// @vierp/database - Prisma Client Singleton
+// Shared database client with connection pooling
+// ============================================================
+import { PrismaClient } from '@prisma/client';
+const globalForPrisma = globalThis;
+export const prisma = globalForPrisma.prisma ??
+    new PrismaClient({
+        log: process.env.NODE_ENV === 'development'
+            ? ['query', 'error', 'warn']
+            : ['error'],
+    });
+if (process.env.NODE_ENV !== 'production') {
+    globalForPrisma.prisma = prisma;
+}
+//# sourceMappingURL=client.js.map

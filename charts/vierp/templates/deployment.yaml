@@ -1,0 +1,79 @@
+{{- range $appKey, $appConfig := .Values.apps }}
+{{- if $appConfig.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "vierp.appFullname" (dict "root" $ "appKey" $appKey) }}
+  namespace: {{ $.Release.Namespace | quote }}
+  labels:
+    {{- include "vierp.appLabels" (dict "root" $ "appKey" $appKey) | nindent 4 }}
+spec:
+  {{- if not $appConfig.hpa.enabled }}
+  replicas: {{ $appConfig.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "vierp.appSelectorLabels" (dict "root" $ "appKey" $appKey) | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") $ | sha256sum }}
+      labels:
+        {{- include "vierp.appSelectorLabels" (dict "root" $ "appKey" $appKey) | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "vierp.fullname" $ }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: {{ include "vierp.appName" $appKey }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+        image: {{ include "vierp.imageRef" (dict "global" $.Values.global "appConfig" $appConfig) }}
+        imagePullPolicy: {{ $.Values.global.imagePullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ $appConfig.port }}
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: {{ include "vierp.fullname" $ }}-config
+        env:
+        - name: PORT
+          value: {{ $appConfig.port | quote }}
+        - name: APP_NAME
+          value: {{ include "vierp.appName" $appKey }}
+        {{- if $.Values.healthCheck.enabled }}
+        livenessProbe:
+          httpGet:
+            path: {{ $.Values.healthCheck.path }}
+            port: http
+          initialDelaySeconds: {{ $.Values.healthCheck.initialDelaySeconds }}
+          periodSeconds: {{ $.Values.healthCheck.periodSeconds }}
+          timeoutSeconds: {{ $.Values.healthCheck.timeoutSeconds }}
+          failureThreshold: {{ $.Values.healthCheck.failureThreshold }}
+        readinessProbe:
+          httpGet:
+            path: {{ $.Values.healthCheck.path }}
+            port: http
+          initialDelaySeconds: {{ $.Values.healthCheck.initialDelaySeconds }}
+          periodSeconds: {{ $.Values.healthCheck.periodSeconds }}
+          timeoutSeconds: {{ $.Values.healthCheck.timeoutSeconds }}
+          failureThreshold: {{ $.Values.healthCheck.failureThreshold }}
+        {{- end }}
+        resources:
+          {{- toYaml $appConfig.resources | nindent 10 }}
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+{{- end }}
+{{- end }}

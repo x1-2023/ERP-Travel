@@ -1,0 +1,12 @@
+# Auth session files (contain sensitive data)
+.auth/
+
+# Test reports
+e2e-report/
+playwright-report/
+test-results/
+
+# Playwright screenshots and videos
+screenshots/
+videos/
+traces/

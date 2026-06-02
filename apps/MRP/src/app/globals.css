@@ -1,0 +1,757 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Prismy Design Tokens */
+@import '../styles/prismy-tokens.css';
+
+/* Dark Mode + Animations */
+@import '../styles/theme.css';
+@import '../styles/animations.css';
+
+/* =============================================================================
+   LANDING PAGE - Marquee Animation
+   ============================================================================= */
+
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes scan {
+  0% {
+    top: 0%;
+  }
+  100% {
+    top: 100%;
+  }
+}
+
+/* =============================================================================
+   VietERP MRP - DESIGN SYSTEM V2
+   Modern, Minimal, Premium, Data-First UI
+   ============================================================================= */
+
+@layer base {
+  :root {
+    /* Shadcn UI Variables - HIGH CONTRAST INDUSTRIAL */
+    --background: 0 0% 97%;
+    --foreground: 222 47% 6%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 6%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 6%;
+    --primary: 152 72% 32%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 92%;
+    --secondary-foreground: 222 47% 6%;
+    --muted: 220 14% 92%;
+    --muted-foreground: 220 16% 28%;
+    --accent: 220 14% 90%;
+    --accent-foreground: 222 47% 6%;
+    --destructive: 0 84% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 75%;
+    --input: 220 13% 72%;
+    --ring: 152 72% 32%;
+    --radius: 0.375rem;
+
+    /* Custom colors */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 95% 42%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Chart colors */
+    --chart-1: 152 72% 32%;
+    --chart-2: 160 84% 39%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 0 84% 60%;
+    --chart-5: 262 83% 58%;
+    --chart-6: 189 94% 43%;
+
+    /* =========================================================================
+       RTR Design System V2 - Extended Variables
+       ========================================================================= */
+
+    /* Primary Brand (Prismy Green) */
+    --color-primary-50: #f0fdf4;
+    --color-primary-100: #dcfce7;
+    --color-primary-200: #bbf7d0;
+    --color-primary-300: #86efac;
+    --color-primary-400: #3ecf8e;
+    --color-primary-500: #30a46c;
+    --color-primary-600: #249163;
+    --color-primary-700: #1a7f4f;
+    --color-primary-800: #166534;
+    --color-primary-900: #14532d;
+
+    /* Navy (Sidebar/Headers) */
+    --color-navy-50: #F8FAFC;
+    --color-navy-100: #F1F5F9;
+    --color-navy-200: #E2E8F0;
+    --color-navy-300: #CBD5E1;
+    --color-navy-400: #94A3B8;
+    --color-navy-500: #64748B;
+    --color-navy-600: #475569;
+    --color-navy-700: #334155;
+    --color-navy-800: #1E293B;
+    --color-navy-900: #0F172A;
+
+    /* Semantic Colors */
+    --color-success: #10B981;
+    --color-success-light: #ECFDF5;
+    --color-success-dark: #059669;
+
+    --color-warning: #F59E0B;
+    --color-warning-light: #FFFBEB;
+    --color-warning-dark: #D97706;
+
+    --color-danger: #EF4444;
+    --color-danger-light: #FEF2F2;
+    --color-danger-dark: #DC2626;
+
+    --color-info: #3B82F6;
+    --color-info-light: #EFF6FF;
+    --color-info-dark: #2563EB;
+
+    /* =========================================================================
+       EXCEL-LIKE UI SYSTEM - CSS Variables
+       Microsoft Excel inspired color palette for familiar UX
+       ========================================================================= */
+
+    /* Excel Primary Green */
+    --excel-primary: #217346;
+    --excel-primary-hover: #1e6b3f;
+    --excel-primary-dark: #1a5c36;
+
+    /* Excel Light Backgrounds */
+    --excel-primary-light: #E2EFDA;
+    --excel-primary-lighter: #F5FAF5;
+    --excel-primary-lightest: #FAFCFA;
+
+    /* Excel UI Elements */
+    --excel-header-bg: #F0F0F0;
+    --excel-row-number-bg: #F8F9FA;
+    --excel-cell-bg: #FFFFFF;
+    --excel-border: #D6D6D6;
+    --excel-border-light: #E8E8E8;
+
+    /* Excel Selection */
+    --excel-selection: rgba(33, 115, 70, 0.12);
+    --excel-selection-border: #217346;
+    --excel-selection-active: rgba(33, 115, 70, 0.2);
+
+    /* Excel Text */
+    --excel-header-text: #333333;
+    --excel-cell-text: #1a1a1a;
+    --excel-row-number-text: #666666;
+
+    /* =========================================================================
+       INDUSTRIAL PRECISION DESIGN SYSTEM
+       Status-driven, Data-First Manufacturing UI
+       ========================================================================= */
+
+    /* Industrial Primary Palette */
+    --steel-dark: #1A1D23;
+    --gunmetal: #2D3139;
+    --gunmetal-light: #363B44;
+    --slate-industrial: #3D4450;
+    --slate-light: #4A5568;
+
+    /* Industrial Accent Colors (Status-driven) */
+    --production-green: #22C55E;
+    --production-green-dim: rgba(34, 197, 94, 0.2);
+    --alert-amber: #F59E0B;
+    --alert-amber-dim: rgba(245, 158, 11, 0.2);
+    --urgent-red: #EF4444;
+    --urgent-red-dim: rgba(239, 68, 68, 0.2);
+    --info-cyan: #249163;
+    --info-cyan-dim: rgba(36, 145, 99, 0.25);
+
+    /* Industrial Text */
+    --text-industrial-primary: #F4F4F5;
+    --text-industrial-secondary: #A1A1AA;
+    --text-industrial-muted: #71717A;
+    --text-industrial-disabled: #52525B;
+
+    /* Industrial Borders */
+    --border-industrial: #3D4450;
+    --border-industrial-light: #52525B;
+    --border-industrial-focus: #249163;
+
+    /* Typography */
+    --font-display: 'JetBrains Mono', monospace;
+    --font-sans: 'IBM Plex Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'JetBrains Mono', 'Fira Code', Consolas, Monaco, monospace;
+
+    /* Layout */
+    --sidebar-width: 220px;
+    --sidebar-collapsed-width: 48px;
+    --topbar-height: 48px;
+    --content-max-width: 1440px;
+
+    /* Z-Index Scale */
+    --z-dropdown: 1000;
+    --z-sticky: 1100;
+    --z-overlay: 1300;
+    --z-modal: 1400;
+    --z-popover: 1500;
+    --z-toast: 1700;
+    --z-tooltip: 1800;
+    --z-command: 1900;
+
+    /* Shadows - Higher contrast for industrial feel */
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.08);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.15), 0 1px 2px -1px rgb(0 0 0 / 0.12);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.15), 0 2px 4px -2px rgb(0 0 0 / 0.12);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.15), 0 4px 6px -4px rgb(0 0 0 / 0.12);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.15), 0 8px 10px -6px rgb(0 0 0 / 0.12);
+
+    /* Transitions */
+    --transition-fast: 100ms;
+    --transition-normal: 200ms;
+    --transition-slow: 300ms;
+    --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark {
+    /* Neutral Dark Theme - Pure Gray (no blue tint) */
+    --background: 0 0% 4%;           /* neutral-950 #0a0a0a */
+    --foreground: 0 0% 98%;          /* neutral-50 */
+    --card: 0 0% 9%;                 /* neutral-900 #171717 */
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 7%;              /* between 950 and 900 */
+    --popover-foreground: 0 0% 98%;
+    --primary: 152 64% 23%;          /* Dark green - high contrast */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 15%;           /* neutral-800 #262626 */
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 15%;               /* neutral-800 */
+    --muted-foreground: 0 0% 64%;    /* neutral-400 */
+    --accent: 0 0% 15%;              /* neutral-800 */
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 18%;              /* slightly lighter than card */
+    --input: 0 0% 15%;               /* neutral-800 */
+    --ring: 152 64% 23%;             /* Dark green ring */
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --chart-1: 152 64% 23%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 0 84% 60%;
+    --chart-5: 262 83% 58%;
+
+    /* Tooltip colors for dark mode - neutral */
+    --tooltip-bg: #171717;           /* neutral-900 */
+    --tooltip-border: #262626;       /* neutral-800 */
+    --tooltip-text: #fafafa;         /* neutral-50 */
+
+    /* Chart colors for dark mode - neutral */
+    --chart-grid: #404040;           /* neutral-700 */
+    --chart-text: #d4d4d4;           /* neutral-300 */
+
+    /* Excel-like UI - Dark Mode Overrides */
+    --excel-primary: #70AD47;
+    --excel-primary-hover: #5a9a3a;
+    --excel-primary-light: rgba(33, 115, 70, 0.2);
+    --excel-primary-lighter: rgba(33, 115, 70, 0.1);
+    --excel-header-bg: #1E2530;
+    --excel-row-number-bg: #252D38;
+    --excel-cell-bg: #0f172a;
+    --excel-border: #374151;
+    --excel-border-light: #2d3748;
+    --excel-selection: rgba(112, 173, 71, 0.2);
+    --excel-selection-border: #70AD47;
+    --excel-header-text: #e5e7eb;
+    --excel-cell-text: #f3f4f6;
+    --excel-row-number-text: #9ca3af;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  /* Remove stacked focus rings - only border change on focus */
+  input:focus,
+  textarea:focus,
+  select:focus,
+  [role="combobox"]:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-weight: 500;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* =============================================================================
+   DARK MODE AUTO-FIX FOR COLORED BACKGROUNDS
+   These utilities automatically apply dark mode variants
+   ============================================================================= */
+
+/* Green backgrounds */
+.dark .bg-green-50 { background-color: rgba(34, 197, 94, 0.15) !important; }
+.dark .bg-green-100 { background-color: rgba(34, 197, 94, 0.25) !important; }
+
+/* Blue backgrounds */
+.dark .bg-blue-50 { background-color: rgba(59, 130, 246, 0.15) !important; }
+.dark .bg-blue-100 { background-color: rgba(59, 130, 246, 0.25) !important; }
+
+/* Red backgrounds */
+.dark .bg-red-50 { background-color: rgba(239, 68, 68, 0.15) !important; }
+.dark .bg-red-100 { background-color: rgba(239, 68, 68, 0.25) !important; }
+
+/* Amber/Yellow backgrounds */
+.dark .bg-amber-50 { background-color: rgba(245, 158, 11, 0.15) !important; }
+.dark .bg-amber-100 { background-color: rgba(245, 158, 11, 0.25) !important; }
+.dark .bg-yellow-50 { background-color: rgba(234, 179, 8, 0.15) !important; }
+.dark .bg-yellow-100 { background-color: rgba(234, 179, 8, 0.25) !important; }
+
+/* Purple backgrounds */
+.dark .bg-purple-50 { background-color: rgba(168, 85, 247, 0.15) !important; }
+.dark .bg-purple-100 { background-color: rgba(168, 85, 247, 0.25) !important; }
+
+/* Gray backgrounds */
+.dark .bg-gray-50 { background-color: rgba(107, 114, 128, 0.15) !important; }
+.dark .bg-gray-100 { background-color: rgba(107, 114, 128, 0.25) !important; }
+
+/* Orange backgrounds */
+.dark .bg-orange-50 { background-color: rgba(249, 115, 22, 0.15) !important; }
+.dark .bg-orange-100 { background-color: rgba(249, 115, 22, 0.25) !important; }
+
+/* Cyan/Teal backgrounds */
+.dark .bg-cyan-50 { background-color: rgba(6, 182, 212, 0.15) !important; }
+.dark .bg-teal-50 { background-color: rgba(20, 184, 166, 0.15) !important; }
+
+/* White backgrounds - convert to neutral dark card color */
+.dark .bg-white {
+  background-color: #171717 !important; /* neutral-900 */
+}
+
+/* =============================================================================
+   RECHARTS DARK MODE STYLES
+   ============================================================================= */
+/* Remove any default backgrounds that may appear */
+.dark .recharts-cartesian-grid-bg {
+  fill: none !important;
+}
+
+/* Target the SVG surface element */
+.dark .recharts-surface {
+  background: transparent !important;
+}
+
+/* Target the wrapper div */
+.dark .recharts-wrapper {
+  background: transparent !important;
+}
+
+/* Target any rect elements that might be used as background */
+.dark .recharts-cartesian-grid rect,
+.dark .recharts-surface > rect:first-child {
+  fill: transparent !important;
+}
+
+/* Target responsive container */
+.dark .recharts-responsive-container {
+  background: transparent !important;
+}
+
+/* Remove background from chart clip paths */
+.dark [class*="recharts"] rect[fill="#fff"],
+.dark [class*="recharts"] rect[fill="white"],
+.dark [class*="recharts"] rect[fill="#ffffff"] {
+  fill: transparent !important;
+}
+
+/* More aggressive targeting - remove ALL background rects in recharts except bars */
+.dark .recharts-surface > g > rect:not([class*="recharts-bar"]),
+.dark .recharts-layer rect.recharts-cartesian-grid-bg,
+.dark .recharts-cartesian-grid rect {
+  fill: transparent !important;
+}
+
+/* Target SVG directly - remove inline background */
+.dark svg.recharts-surface {
+  background-color: transparent !important;
+}
+
+/* Very specific targeting for gray backgrounds */
+.dark [class*="recharts"] rect[fill="#f5f5f5"],
+.dark [class*="recharts"] rect[fill="#e5e5e5"],
+.dark [class*="recharts"] rect[fill="#eee"],
+.dark [class*="recharts"] rect[fill="#eeeeee"],
+.dark [class*="recharts"] rect[fill="#f0f0f0"],
+.dark [class*="recharts"] rect[fill="rgb(245, 245, 245)"],
+.dark [class*="recharts"] rect[fill="rgb(238, 238, 238)"],
+.dark [class*="recharts"] rect[fill="rgb(240, 240, 240)"] {
+  fill: transparent !important;
+}
+
+/* Ultimate fallback - force all chart containers to be transparent */
+.dark .recharts-wrapper svg,
+.dark .recharts-responsive-container svg {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Force fill on any rect that's not a data bar to be transparent */
+.dark .recharts-surface rect:not(.recharts-bar-rectangle):not([class*="bar"]) {
+  fill: transparent !important;
+}
+
+/* Override any inline styles on the wrapper */
+.dark [style*="background"] .recharts-wrapper,
+.dark .recharts-wrapper[style*="background"] {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* =============================================================================
+   RECHARTS GENERAL DARK MODE FIX (for other charts)
+   ============================================================================= */
+.dark .recharts-wrapper,
+.dark .recharts-surface {
+  background: transparent !important;
+}
+
+.dark .recharts-cartesian-grid-bg {
+  fill: transparent !important;
+}
+
+/* =============================================================================
+   NATIVE SELECT DARK MODE FIX
+   ============================================================================= */
+.dark select:not([class*="dark:"]) {
+  background-color: #262626 !important; /* neutral-800 */
+  border-color: #404040 !important; /* neutral-700 */
+  color: #fafafa !important; /* neutral-50 */
+}
+
+.dark select option {
+  background-color: #262626;
+  color: #fafafa;
+}
+
+/* =============================================================================
+   NATIVE CHECKBOX STYLING
+   Since @tailwindcss/forms is NOT installed, style checkboxes manually
+   ============================================================================= */
+
+input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid hsl(220 13% 69%);
+  border-radius: 0.125rem;
+  background-color: white;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+input[type="checkbox"]:checked {
+  background-color: #30a46c;
+  border-color: #30a46c;
+}
+
+input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0px;
+  width: 5px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+input[type="checkbox"]:indeterminate {
+  background-color: #30a46c;
+  border-color: #30a46c;
+}
+
+input[type="checkbox"]:indeterminate::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 5px;
+  width: 8px;
+  height: 0;
+  border: solid white;
+  border-width: 0 0 2px 0;
+}
+
+input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #30a46c;
+}
+
+input[type="checkbox"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Dark mode checkboxes */
+.dark input[type="checkbox"] {
+  background-color: hsl(0 0% 15%);
+  border-color: hsl(0 0% 30%);
+}
+
+.dark input[type="checkbox"]:checked {
+  background-color: #3ecf8e;
+  border-color: #3ecf8e;
+}
+
+.dark input[type="checkbox"]:indeterminate {
+  background-color: #3ecf8e;
+  border-color: #3ecf8e;
+}
+
+.dark input[type="checkbox"]:focus-visible {
+  outline-color: #3ecf8e;
+}
+
+/* Landing Page Gradient Text */
+.gradient-text {
+  background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-light {
+  background: linear-gradient(135deg, #09090b 0%, #52525b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* =============================================================================
+   LIGHT MODE - HIGH CONTRAST INDUSTRIAL ENHANCEMENTS
+   Better readability for users with vision issues
+   Only applies when NOT in dark mode
+   ============================================================================= */
+
+/* Light mode specific hover states - BOLD & VIVID */
+:root:not(.dark) .hover\:bg-muted:hover {
+  background-color: hsl(220 14% 85%) !important;
+}
+
+:root:not(.dark) .hover\:bg-accent:hover {
+  background-color: hsl(220 14% 83%) !important;
+}
+
+/* Buttons - Strong hover states in light mode */
+:root:not(.dark) button:hover {
+  filter: brightness(0.92);
+}
+
+/* Cards - Bold borders and shadows */
+:root:not(.dark) [data-slot="card"] {
+  border-color: hsl(220 13% 75%);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.12), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
+
+:root:not(.dark) [data-slot="card"]:hover {
+  box-shadow: 0 6px 12px -2px rgb(0 0 0 / 0.15), 0 3px 6px -3px rgb(0 0 0 / 0.12);
+}
+
+/* Table rows - Strong hover in light mode */
+:root:not(.dark) tbody tr:hover {
+  background-color: hsl(220 14% 93%) !important;
+}
+
+/* Input fields - Darker borders for visibility */
+:root:not(.dark) input,
+:root:not(.dark) textarea,
+:root:not(.dark) select {
+  border-color: hsl(220 13% 78%);
+}
+
+:root:not(.dark) input:focus,
+:root:not(.dark) textarea:focus,
+:root:not(.dark) select:focus {
+  border-color: hsl(152 69% 40%);
+  box-shadow: none;
+  outline: none;
+}
+
+/* Dropdown menus - More visible separators */
+:root:not(.dark) [role="menu"] {
+  border-color: hsl(220 13% 78%);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.12);
+}
+
+/* Tooltips - Higher contrast in light mode */
+:root:not(.dark) [role="tooltip"] {
+  background-color: hsl(222 47% 11%);
+  color: white;
+  border: 1px solid hsl(222 47% 20%);
+}
+
+/* Data tables - Clearer header separation */
+:root:not(.dark) th {
+  background-color: hsl(220 14% 93%);
+  border-bottom: 2px solid hsl(220 13% 78%);
+  font-weight: 600;
+  color: hsl(222 47% 11%);
+}
+
+/* Progress bars - More visible track */
+:root:not(.dark) [role="progressbar"] {
+  background-color: hsl(220 14% 88%);
+}
+
+/* Skeleton loading - More visible contrast */
+:root:not(.dark) .animate-pulse {
+  background-color: hsl(220 14% 90%);
+}
+
+/* Dividers/Separators - More visible */
+:root:not(.dark) hr,
+:root:not(.dark) [role="separator"] {
+  border-color: hsl(220 13% 80%);
+}
+
+/* Sidebar items - BOLD hover/active */
+:root:not(.dark) [data-sidebar="menu-button"]:hover {
+  background-color: hsl(220 14% 88%);
+}
+
+:root:not(.dark) [data-sidebar="menu-button"][data-active="true"] {
+  background-color: hsl(152 69% 93%);
+  border-left: 3px solid hsl(152 69% 40%);
+  font-weight: 600;
+}
+
+/* Tabs - Bold active state */
+:root:not(.dark) [role="tab"][data-state="active"] {
+  border-bottom: 3px solid hsl(152 69% 40%);
+  color: hsl(152 69% 35%);
+  font-weight: 600;
+}
+
+/* Badges - Bold contrast */
+:root:not(.dark) [data-slot="badge"] {
+  border: 1px solid hsl(220 13% 70%);
+  font-weight: 600;
+}
+
+/* Select/Dropdown triggers */
+:root:not(.dark) [data-slot="select-trigger"],
+:root:not(.dark) [role="combobox"] {
+  border-color: hsl(220 13% 72%);
+}
+
+:root:not(.dark) [data-slot="select-trigger"]:hover,
+:root:not(.dark) [role="combobox"]:hover {
+  border-color: hsl(220 13% 55%);
+}
+
+/* =============================================================================
+   ICON COLOR ENHANCEMENT - Vivid, Saturated Icons
+   Strengthens the bg-[color]-100/text-[color]-600 pattern globally
+   ============================================================================= */
+
+/* Blue icons - More vivid */
+:root:not(.dark) .text-blue-500 { color: #2563EB !important; }
+:root:not(.dark) .text-blue-600 { color: #1D4ED8 !important; }
+:root:not(.dark) .bg-blue-50 { background-color: #DBEAFE !important; }
+:root:not(.dark) .bg-blue-100 { background-color: #C5D9F8 !important; }
+
+/* Green icons - More vivid */
+:root:not(.dark) .text-green-500 { color: #059669 !important; }
+:root:not(.dark) .text-green-600 { color: #047857 !important; }
+:root:not(.dark) .bg-green-50 { background-color: #D1FAE5 !important; }
+:root:not(.dark) .bg-green-100 { background-color: #BBF7D0 !important; }
+
+/* Amber/Warning icons - More vivid */
+:root:not(.dark) .text-amber-500 { color: #D97706 !important; }
+:root:not(.dark) .text-amber-600 { color: #B45309 !important; }
+:root:not(.dark) .bg-amber-50 { background-color: #FEF3C7 !important; }
+:root:not(.dark) .bg-amber-100 { background-color: #FDE68A !important; }
+
+/* Red/Danger icons - More vivid */
+:root:not(.dark) .text-red-500 { color: #DC2626 !important; }
+:root:not(.dark) .text-red-600 { color: #B91C1C !important; }
+:root:not(.dark) .bg-red-50 { background-color: #FEE2E2 !important; }
+:root:not(.dark) .bg-red-100 { background-color: #FECACA !important; }
+
+/* Purple icons - More vivid */
+:root:not(.dark) .text-purple-500 { color: #7C3AED !important; }
+:root:not(.dark) .text-purple-600 { color: #6D28D9 !important; }
+:root:not(.dark) .bg-purple-50 { background-color: #EDE9FE !important; }
+:root:not(.dark) .bg-purple-100 { background-color: #DDD6FE !important; }
+
+/* Cyan icons - More vivid */
+:root:not(.dark) .text-cyan-500 { color: #0891B2 !important; }
+:root:not(.dark) .text-cyan-600 { color: #0E7490 !important; }
+
+/* =============================================================================
+   GLOBAL TYPOGRAPHY ENHANCEMENT - Bolder, Sharper Text
+   ============================================================================= */
+
+/* All headings bolder — only in dashboard/content areas, not on elements with explicit text color */
+:root:not(.dark) h1:not([class*="text-white"]):not([class*="text-gray-"]),
+:root:not(.dark) h2:not([class*="text-white"]):not([class*="text-gray-"]),
+:root:not(.dark) h3:not([class*="text-white"]):not([class*="text-gray-"]),
+:root:not(.dark) h4:not([class*="text-white"]):not([class*="text-gray-"]),
+:root:not(.dark) h5:not([class*="text-white"]):not([class*="text-gray-"]),
+:root:not(.dark) h6:not([class*="text-white"]):not([class*="text-gray-"]) {
+  font-weight: 700;
+  color: hsl(222 47% 6%);
+}
+
+/* Card titles bolder */
+:root:not(.dark) [data-slot="card-title"] {
+  font-weight: 700;
+}
+
+/* Page titles/descriptions */
+:root:not(.dark) .text-muted-foreground {
+  color: hsl(220 16% 28%);
+}
+
+/* Labels bolder */
+:root:not(.dark) label {
+  font-weight: 600;
+  color: hsl(222 47% 10%);
+}
+
+/* Table header text */
+:root:not(.dark) th {
+  font-weight: 700;
+  color: hsl(222 47% 6%);
+  letter-spacing: -0.01em;
+}
+
+/* Navigation items bolder */
+:root:not(.dark) nav a, :root:not(.dark) [data-sidebar="menu-button"] {
+  font-weight: 500;
+}

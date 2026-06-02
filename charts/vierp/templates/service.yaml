@@ -1,0 +1,21 @@
+{{- range $appKey, $appConfig := .Values.apps }}
+{{- if $appConfig.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "vierp.appFullname" (dict "root" $ "appKey" $appKey) }}
+  namespace: {{ $.Release.Namespace | quote }}
+  labels:
+    {{- include "vierp.appLabels" (dict "root" $ "appKey" $appKey) | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: {{ $appConfig.port }}
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    {{- include "vierp.appSelectorLabels" (dict "root" $ "appKey" $appKey) | nindent 4 }}
+{{- end }}
+{{- end }}

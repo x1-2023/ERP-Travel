@@ -1,0 +1,100 @@
+graph TD
+    CORE["Core Libraries<br/>Types, Utils, Constants"]
+
+    ADMIN["Admin Dashboard<br/>Next.js Web App"]
+    PORTAL["Public Portal<br/>Next.js Web App"]
+    MOBILE["Mobile App<br/>React Native"]
+
+    CRM["CRM Service<br/>Customers, Contacts, Deals"]
+    ACC["Accounting Service<br/>Invoices, Ledgers, Reports"]
+    INV["Inventory Service<br/>Products, Stock, Warehouses"]
+    HRM["HRM Service<br/>Employees, Payroll, Benefits"]
+    ECOM["Ecommerce Service<br/>Online Store, Orders"]
+    MRP["MRP Service<br/>Manufacturing, BOM"]
+    PAY["Payroll Service<br/>Salaries, Deductions, Tax"]
+    FIN["Financial Service<br/>Cash Flow, Budgets"]
+    PUR["Purchasing Service<br/>Vendors, POs"]
+    QUAL["Quality Service<br/>QC, Inspections"]
+    PROJECT["Project Service<br/>Projects, Tasks"]
+    DOC["Document Service<br/>File Storage, Management"]
+
+    COMPLIANCE["Compliance Module<br/>TT200, NĐ123, BHXH"]
+    EVENTS["Event Types<br/>Subjects, Schemas"]
+    UI["UI Components<br/>React Library"]
+    VALIDATION["Validation Rules<br/>Zod Schemas"]
+
+    CORE -->|Exports| ADMIN
+    CORE -->|Exports| PORTAL
+    CORE -->|Exports| MOBILE
+
+    CORE -->|Exports| CRM
+    CORE -->|Exports| ACC
+    CORE -->|Exports| INV
+    CORE -->|Exports| HRM
+    CORE -->|Exports| ECOM
+    CORE -->|Exports| MRP
+    CORE -->|Exports| PAY
+    CORE -->|Exports| FIN
+    CORE -->|Exports| PUR
+    CORE -->|Exports| QUAL
+    CORE -->|Exports| PROJECT
+
+    EVENTS -->|Consumed| CRM
+    EVENTS -->|Consumed| ACC
+    EVENTS -->|Consumed| INV
+    EVENTS -->|Consumed| HRM
+    EVENTS -->|Consumed| ECOM
+    EVENTS -->|Consumed| MRP
+    EVENTS -->|Consumed| PAY
+
+    VALIDATION -->|Used| CRM
+    VALIDATION -->|Used| ACC
+    VALIDATION -->|Used| INV
+    VALIDATION -->|Used| HRM
+    VALIDATION -->|Used| ECOM
+    VALIDATION -->|Used| MRP
+    VALIDATION -->|Used| PAY
+
+    UI -->|Used| ADMIN
+    UI -->|Used| PORTAL
+    UI -->|Used| MOBILE
+
+    COMPLIANCE -->|Used| ACC
+    COMPLIANCE -->|Used| PAY
+    COMPLIANCE -->|Used| ECOM
+
+    CRM -->|Events| ECOM
+    CRM -->|Events| ACC
+    ECOM -->|Events| INV
+    ECOM -->|Events| MRP
+    ECOM -->|Events| ACC
+    INV -->|Events| MRP
+    MRP -->|Events| ACC
+    HRM -->|Events| PAY
+    PAY -->|Events| ACC
+    ACC -->|Events| FIN
+    PUR -->|Events| INV
+    PUR -->|Events| ACC
+
+    ADMIN -->|Queries| CRM
+    ADMIN -->|Queries| ACC
+    ADMIN -->|Queries| INV
+    ADMIN -->|Queries| HRM
+    ADMIN -->|Queries| PAY
+    ADMIN -->|Queries| FIN
+
+    PORTAL -->|Queries| ECOM
+    PORTAL -->|Queries| CRM
+
+    MOBILE -->|Queries| CRM
+    MOBILE -->|Queries| HRM
+
+    classDef core fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
+    classDef service fill:#E8F5E9,stroke:#388E3C,stroke-width:2px
+    classDef package fill:#FFF3E0,stroke:#F57C00,stroke-width:2px
+    classDef app fill:#FCE4EC,stroke:#C2185B,stroke-width:2px
+
+    class CORE core
+    class CRM,ACC,INV,HRM,ECOM,MRP,PAY,FIN,PUR,QUAL,PROJECT,COMPLIANCE service
+    class EVENTS,VALIDATION,UI package
+    class ADMIN,PORTAL,MOBILE app

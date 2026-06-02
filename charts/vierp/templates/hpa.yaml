@@ -1,0 +1,49 @@
+{{- range $appKey, $appConfig := .Values.apps }}
+{{- if and $appConfig.enabled $appConfig.hpa.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "vierp.appFullname" (dict "root" $ "appKey" $appKey) }}
+  namespace: {{ $.Release.Namespace | quote }}
+  labels:
+    {{- include "vierp.appLabels" (dict "root" $ "appKey" $appKey) | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "vierp.appFullname" (dict "root" $ "appKey" $appKey) }}
+  minReplicas: {{ $appConfig.hpa.minReplicas }}
+  maxReplicas: {{ $appConfig.hpa.maxReplicas }}
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ $appConfig.hpa.targetCPUUtilizationPercentage }}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+      - type: Pods
+        value: 2
+        periodSeconds: 30
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+{{- end }}
+{{- end }}

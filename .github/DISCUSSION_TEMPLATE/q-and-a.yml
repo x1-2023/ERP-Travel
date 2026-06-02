@@ -1,0 +1,80 @@
+title: Question / Câu hỏi
+labels: ["question", "help"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # Question / Câu hỏi
+
+        Ask a question about VietERP Platform.
+        Đặt một câu hỏi về VietERP Platform.
+
+        Please search existing discussions first to avoid duplicates.
+        Vui lòng tìm kiếm các cuộc thảo luận hiện có trước để tránh trùng lặp.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: "Question / Câu hỏi"
+      description: "What would you like to know? / Bạn muốn biết điều gì?"
+      placeholder: |
+        I'm trying to...
+        Tôi đang cố gắng...
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-tried
+    attributes:
+      label: "What have you tried? / Bạn đã thử cái gì?"
+      description: "What steps have you already taken? / Bạn đã thực hiện những bước nào?"
+      placeholder: |
+        I have tried...
+        Tôi đã thử...
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: "Environment / Môi trường"
+      description: "Which environment are you using? / Bạn đang sử dụng môi trường nào?"
+      options:
+        - "Development (Local) / Phát triển (Cục bộ)"
+        - "Staging"
+        - "Production"
+        - "Docker"
+        - "Kubernetes"
+        - "Cloud (AWS/GCP/Azure)"
+        - "Other / Khác"
+
+  - type: input
+    id: version
+    attributes:
+      label: "VietERP Version / Phiên bản VietERP"
+      description: "What version of VietERP are you using? / Bạn đang sử dụng phiên bản nào của VietERP?"
+      placeholder: "2.0.0"
+
+  - type: textarea
+    id: error
+    attributes:
+      label: "Error Message / Thông báo Lỗi (if applicable)"
+      description: "If applicable, include error message / Nếu có, hãy bao gồm thông báo lỗi"
+      placeholder: |
+        ```
+        Error message here...
+        ```
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: "Additional Context / Ngữ cảnh Bổ sung"
+      description: "Screenshots, logs, or other helpful information / Ảnh chụp, nhật ký, hoặc thông tin hữu ích khác"
+
+  - type: checkboxes
+    id: research
+    attributes:
+      label: "Before Posting / Trước khi Đăng"
+      options:
+        - label: "I have searched existing discussions / Tôi đã tìm kiếm các cuộc thảo luận hiện có"
+          required: true
+        - label: "I have checked the documentation / Tôi đã kiểm tra tài liệu"
+        - label: "I have searched GitHub issues / Tôi đã tìm kiếm các issue GitHub"

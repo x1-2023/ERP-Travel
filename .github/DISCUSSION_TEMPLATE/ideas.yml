@@ -1,0 +1,70 @@
+title: Feature Idea / Ý tưởng Tính năng
+labels: ["enhancement", "idea"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # Feature Idea / Ý tưởng Tính năng
+
+        Please share your feature idea or enhancement suggestion for VietERP Platform.
+        Vui lòng chia sẻ ý tưởng tính năng hoặc gợi ý cải tiến cho VietERP Platform.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: "Description / Mô tả"
+      description: "Describe the feature you'd like to see in VietERP / Mô tả tính năng bạn muốn thấy trong VietERP"
+      placeholder: |
+        Example / Ví dụ:
+        I would like to add customer segmentation based on purchase history...
+        Tôi muốn thêm phân khúc khách hàng dựa trên lịch sử mua hàng...
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: "Use Case / Trường hợp Sử dụng"
+      description: "Describe how this feature would be used / Mô tả cách sử dụng tính năng này"
+      placeholder: |
+        This feature would help with...
+        Tính năng này sẽ giúp với...
+
+  - type: textarea
+    id: benefit
+    attributes:
+      label: "Benefit / Lợi ích"
+      description: "What problems would this solve? / Vấn đề nào sẽ được giải quyết?"
+      placeholder: |
+        This would benefit...
+        Điều này sẽ mang lợi ích cho...
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: "Module / Module"
+      description: "Which module would this affect? / Module nào sẽ bị ảnh hưởng?"
+      options:
+        - "Accounting / Kế toán"
+        - "CRM"
+        - "HRM / Quản lý Nhân sự"
+        - "MRP / Quản lý Sản xuất"
+        - "Ecommerce / Thương mại Điện tử"
+        - "Core / Lõi"
+        - "Other / Khác"
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: "Priority / Ưu tiên"
+      options:
+        - "Low / Thấp"
+        - "Medium / Trung bình"
+        - "High / Cao"
+        - "Critical / Nghiêm trọng"
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: "Additional Context / Ngữ cảnh Bổ sung"
+      description: "Any other context, screenshots, or links? / Bất kỳ ngữ cảnh, ảnh chụp, hoặc liên kết khác nào?"

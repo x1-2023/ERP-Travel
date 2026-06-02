@@ -1,0 +1,52 @@
+sequenceDiagram
+    participant Client as Client<br/>Browser/Mobile
+    participant Kong as Kong Gateway<br/>API Router
+    participant Keycloak as Keycloak<br/>Auth
+    participant Service as Service<br/>Node.js
+    participant Cache as Redis<br/>Cache
+    participant Prisma as Prisma ORM<br/>Query Builder
+    participant PG as PostgreSQL<br/>Database
+    participant NATS as NATS JetStream<br/>Events
+
+    Note over Client,NATS: Request Flow
+
+    Client->>Kong: 1. POST /api/invoices<br/>(with JWT token)
+    Kong->>Keycloak: 2. Validate JWT<br/>Check Scopes
+    Keycloak-->>Kong: 3. Token Valid ✓
+    Kong->>Service: 4. Route Request<br/>/invoices Handler
+
+    Note over Service,Cache: Service Processing
+
+    Service->>Cache: 5. Check Cache<br/>get:invoices:list
+    Cache-->>Service: 6. Cache Miss
+    Service->>Prisma: 7. Query Invoice.findMany()<br/>with filters, relations
+    Prisma->>PG: 8. SELECT invoices...<br/>with JOINs to line items
+
+    Note over PG: Database Query
+
+    PG->>PG: 9. ACID Transaction<br/>Execute Query
+    PG-->>Prisma: 10. Return typed rows<br/>Invoice[]
+
+    Note over Prisma,Service: Response Building
+
+    Prisma-->>Service: 11. Typed Response<br/>Invoice[] (type-safe)
+    Service->>Cache: 12. Store in Cache<br/>set:invoices:list TTL=5m
+    Service->>NATS: 13. Publish Event<br/>invoice.listed
+
+    Note over NATS: Event Streaming
+
+    NATS->>NATS: 14. Store Event<br/>JetStream Persistence
+    NATS-->>Service: 15. Event ACK
+
+    Note over Service,Client: Response
+
+    Service-->>Kong: 16. JSON Response<br/>200 OK
+    Kong-->>Client: 17. Return Response<br/>with headers
+
+    Note over Client: Client Receives<br/>Type-safe data
+
+    rect rgba(100, 200, 100, 0.2)
+        Note over Service,NATS: Event-Driven Subscribers
+        NATS->>Service: 18. Durable Consumer<br/>Receives invoice.listed<br/>Updates Analytics
+        NATS->>Service: 19. Another Consumer<br/>Receives invoice.listed<br/>Triggers Notification
+    end

@@ -1,0 +1,706 @@
+---
+title: VietERP Database Entity-Relationship Diagram
+---
+
+erDiagram
+    %% ============================================================
+    %% CORE / SHARED SCHEMA (Public)
+    %% ============================================================
+
+    TENANT {
+        string id PK
+        string name
+        string slug UK
+        enum tier
+        boolean isActive
+        json settings
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    USER {
+        string id PK
+        string email
+        string name
+        enum role
+        string avatar
+        boolean isActive
+        string keycloakId UK
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    CUSTOMER {
+        string id PK
+        string code UK
+        string name
+        string email
+        string phone
+        string taxCode
+        enum type
+        enum status
+        json address
+        string tenantId FK
+        string createdBy
+        datetime createdAt
+        datetime updatedAt
+        datetime deletedAt
+    }
+
+    PRODUCT {
+        string id PK
+        string code UK
+        string name
+        string description
+        string unit
+        string category
+        decimal price
+        decimal cost
+        enum status
+        string tenantId FK
+        string createdBy
+        datetime createdAt
+        datetime updatedAt
+        datetime deletedAt
+    }
+
+    EMPLOYEE {
+        string id PK
+        string code UK
+        string name
+        string email UK
+        string phone
+        string department
+        string position
+        datetime hireDate
+        enum status
+        string tenantId FK
+        string createdBy
+        datetime createdAt
+        datetime updatedAt
+        datetime deletedAt
+    }
+
+    SUPPLIER {
+        string id PK
+        string code UK
+        string name
+        string email
+        string phone
+        string taxCode
+        string bankAccount
+        string bankName
+        json address
+        string contactPerson
+        int paymentTermDays
+        float rating
+        enum status
+        string tenantId FK
+        string createdBy
+        datetime createdAt
+        datetime updatedAt
+        datetime deletedAt
+    }
+
+    WAREHOUSE {
+        string id PK
+        string code UK
+        string name
+        string address
+        string managerId
+        enum status
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    UNITOFMEASURE {
+        string id PK
+        string code UK
+        string name
+        string description
+        float conversionFactor
+        string baseUnitId
+        string tenantId FK
+        boolean isActive
+    }
+
+    AUDITLOG {
+        string id PK
+        string action
+        string entity
+        string entityId
+        json changes
+        string userId FK
+        string tenantId FK
+        string ipAddress
+        string userAgent
+        datetime createdAt
+    }
+
+    MASTERDATACHANGELOG {
+        string id PK
+        string entity
+        string entityId
+        string action
+        json changes
+        string sourceModule
+        string userId
+        string tenantId FK
+        int version
+        datetime createdAt
+    }
+
+    FEATUREFLAG {
+        string id PK
+        string key UK
+        string name
+        string description
+        enum enabledTiers
+        boolean isEnabled
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    %% ============================================================
+    %% ACCOUNTING SCHEMA
+    %% ============================================================
+
+    ACCOUNT {
+        string id PK
+        string accountNumber UK
+        string name
+        string nameEn
+        string description
+        enum accountType
+        enum accountGroup
+        enum normalBalance
+        string parentId FK
+        int level
+        boolean isActive
+        boolean isSystemAccount
+        boolean isBankAccount
+        string currency
+        string vasCode
+        string ifrsCode
+        string tt200Code
+        string tt133Code
+        decimal openingBalance
+        decimal currentBalance
+        string tenantId FK
+        string createdBy
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    FISCALYEAR {
+        string id PK
+        int year UK
+        datetime startDate
+        datetime endDate
+        boolean isCurrent
+        enum status
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    FISCALPERIOD {
+        string id PK
+        string fiscalYearId FK
+        int period
+        string name
+        datetime startDate
+        datetime endDate
+        enum status
+        datetime closedAt
+        string closedBy
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    JOURNALENTRY {
+        string id PK
+        string entryNumber UK
+        string fiscalPeriodId FK
+        string description
+        string reference
+        datetime entryDate
+        enum status
+        string currencyCode
+        decimal baseCurrencyRate
+        string sourceModule
+        string sourceDocumentId
+        string tenantId FK
+        string createdBy
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    JOURNALLINE {
+        string id PK
+        string journalEntryId FK
+        string accountId FK
+        decimal debitAmount
+        decimal creditAmount
+        string description
+        string reference
+        int lineNumber
+        string costCenter
+        string department
+        string tenantId FK
+        datetime createdAt
+    }
+
+    APINVOICE {
+        string id PK
+        string invoiceNumber UK
+        string supplierId FK
+        datetime invoiceDate
+        datetime dueDate
+        decimal amount
+        decimal discountAmount
+        decimal taxAmount
+        enum status
+        string glAccountId FK
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+        datetime deletedAt
+    }
+
+    ARINVOICE {
+        string id PK
+        string invoiceNumber UK
+        string customerId FK
+        datetime invoiceDate
+        datetime dueDate
+        decimal amount
+        decimal discountAmount
+        decimal taxAmount
+        enum status
+        string glAccountId FK
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+        datetime deletedAt
+    }
+
+    %% ============================================================
+    %% CRM SCHEMA
+    %% ============================================================
+
+    LEAD {
+        string id PK
+        string leadNumber UK
+        string companyName
+        string contactName
+        string email
+        string phone
+        enum status
+        enum source
+        decimal value
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    CRMCONTACT {
+        string id PK
+        string firstName
+        string lastName
+        string email UK
+        string phone
+        string accountId FK
+        string title
+        enum status
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    CRMACCOUNT {
+        string id PK
+        string name
+        string industry
+        string phone
+        string website
+        enum status
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    OPPORTUNITY {
+        string id PK
+        string opportunityName
+        string accountId FK
+        enum stage
+        decimal amount
+        datetime expectedCloseDate
+        int probability
+        enum status
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    ACTIVITY {
+        string id PK
+        enum activityType
+        string subject
+        string description
+        string relatedTo
+        string relatedToId
+        datetime dueDate
+        enum status
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    CAMPAIGN {
+        string id PK
+        string campaignName
+        enum status
+        datetime startDate
+        datetime endDate
+        decimal budget
+        string description
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    %% ============================================================
+    %% ECOMMERCE SCHEMA
+    %% ============================================================
+
+    ECOMMERCE_PRODUCT {
+        string id PK
+        string sku UK
+        string name
+        string description
+        string categoryId FK
+        decimal price
+        decimal cost
+        int stock
+        enum status
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    PRODUCTCATEGORY {
+        string id PK
+        string code UK
+        string name
+        string description
+        string parentId FK
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    ORDER {
+        string id PK
+        string orderNumber UK
+        string customerId FK
+        enum status
+        decimal totalAmount
+        json shippingAddress
+        json billingAddress
+        enum paymentStatus
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    ORDERITEM {
+        string id PK
+        string orderId FK
+        string productId FK
+        int quantity
+        decimal unitPrice
+        decimal totalPrice
+        string tenantId FK
+        datetime createdAt
+    }
+
+    CART {
+        string id PK
+        string customerId FK
+        decimal totalAmount
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    CARTITEM {
+        string id PK
+        string cartId FK
+        string productId FK
+        int quantity
+        decimal unitPrice
+        string tenantId FK
+    }
+
+    PAYMENT {
+        string id PK
+        string orderId FK
+        decimal amount
+        enum method
+        enum status
+        string transactionId
+        string tenantId FK
+        datetime createdAt
+    }
+
+    SHIPMENT {
+        string id PK
+        string orderId FK
+        string trackingNumber
+        string carrier
+        enum status
+        datetime shippingDate
+        datetime deliveryDate
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    %% ============================================================
+    %% HRM SCHEMA
+    %% ============================================================
+
+    DEPARTMENT {
+        string id PK
+        string code UK
+        string name
+        string managerId FK
+        string parentId FK
+        enum status
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    POSITION {
+        string id PK
+        string code UK
+        string name
+        enum level
+        decimal salary
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    ATTENDANCE {
+        string id PK
+        string employeeId FK
+        datetime date
+        datetime checkIn
+        datetime checkOut
+        enum status
+        decimal workingHours
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    PAYROLL {
+        string id PK
+        string payrollPeriod UK
+        string employeeId FK
+        decimal baseSalary
+        decimal allowances
+        decimal deductions
+        decimal taxAmount
+        decimal netSalary
+        enum status
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    LEAVE {
+        string id PK
+        string employeeId FK
+        enum leaveType
+        datetime startDate
+        datetime endDate
+        decimal days
+        enum status
+        string reason
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    %% ============================================================
+    %% MRP SCHEMA
+    %% ============================================================
+
+    BOM {
+        string id PK
+        string code UK
+        string productId FK
+        int version
+        enum status
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    BOMMATERIALLINE {
+        string id PK
+        string bomId FK
+        string materialProductId FK
+        decimal quantity
+        string unitId FK
+        decimal wastagePercent
+        datetime createdAt
+    }
+
+    PRODUCTIONORDER {
+        string id PK
+        string poNumber UK
+        string productId FK
+        decimal quantity
+        enum status
+        datetime startDate
+        datetime endDate
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    QUALITYCHECK {
+        string id PK
+        string productionOrderId FK
+        datetime checkDate
+        decimal passedQuantity
+        decimal failedQuantity
+        string defectNotes
+        enum status
+        string tenantId FK
+        datetime createdAt
+    }
+
+    INVENTORY {
+        string id PK
+        string productId FK
+        string warehouseId FK
+        decimal quantity
+        decimal reorderLevel
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    MACHINE {
+        string id PK
+        string code UK
+        string name
+        string model
+        enum status
+        datetime lastMaintenanceDate
+        datetime nextMaintenanceDate
+        string tenantId FK
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    %% ============================================================
+    %% RELATIONSHIPS
+    %% ============================================================
+
+    %% Tenant relationships
+    TENANT ||--o{ USER : has
+    TENANT ||--o{ CUSTOMER : has
+    TENANT ||--o{ PRODUCT : has
+    TENANT ||--o{ EMPLOYEE : has
+    TENANT ||--o{ SUPPLIER : has
+    TENANT ||--o{ WAREHOUSE : has
+    TENANT ||--o{ UNITOFMEASURE : has
+
+    %% User relationships
+    USER ||--o{ AUDITLOG : creates
+
+    %% Accounting relationships
+    TENANT ||--o{ ACCOUNT : has
+    TENANT ||--o{ FISCALYEAR : has
+    TENANT ||--o{ JOURNALENTRY : has
+    TENANT ||--o{ APINVOICE : has
+    TENANT ||--o{ ARINVOICE : has
+
+    FISCALYEAR ||--o{ FISCALPERIOD : contains
+    FISCALPERIOD ||--o{ JOURNALENTRY : "in period"
+    JOURNALENTRY ||--o{ JOURNALLINE : contains
+    ACCOUNT ||--o{ JOURNALLINE : "recorded in"
+    ACCOUNT ||--o{ ACCOUNT : "parent of"
+
+    APINVOICE ||--o{ ACCOUNT : "posts to"
+    ARINVOICE ||--o{ ACCOUNT : "posts to"
+    SUPPLIER ||--o{ APINVOICE : "receives"
+    CUSTOMER ||--o{ ARINVOICE : "owes"
+
+    %% CRM relationships
+    TENANT ||--o{ LEAD : has
+    TENANT ||--o{ CRMCONTACT : has
+    TENANT ||--o{ CRMACCOUNT : has
+    TENANT ||--o{ OPPORTUNITY : has
+    TENANT ||--o{ ACTIVITY : has
+    TENANT ||--o{ CAMPAIGN : has
+
+    CRMACCOUNT ||--o{ CRMCONTACT : "has"
+    CRMACCOUNT ||--o{ OPPORTUNITY : "has"
+
+    %% Ecommerce relationships
+    TENANT ||--o{ ECOMMERCE_PRODUCT : has
+    TENANT ||--o{ PRODUCTCATEGORY : has
+    TENANT ||--o{ ORDER : has
+    TENANT ||--o{ CART : has
+    TENANT ||--o{ PAYMENT : has
+    TENANT ||--o{ SHIPMENT : has
+
+    PRODUCTCATEGORY ||--o{ ECOMMERCE_PRODUCT : "categorizes"
+    PRODUCTCATEGORY ||--o{ PRODUCTCATEGORY : "parent of"
+    ORDER ||--o{ ORDERITEM : contains
+    ORDER ||--o{ PAYMENT : receives
+    ORDER ||--o{ SHIPMENT : "shipped via"
+    ECOMMERCE_PRODUCT ||--o{ ORDERITEM : "in order"
+    CART ||--o{ CARTITEM : contains
+    ECOMMERCE_PRODUCT ||--o{ CARTITEM : "added to"
+    CUSTOMER ||--o{ ORDER : places
+    CUSTOMER ||--o{ CART : owns
+
+    %% HRM relationships
+    TENANT ||--o{ DEPARTMENT : has
+    TENANT ||--o{ POSITION : has
+    TENANT ||--o{ ATTENDANCE : has
+    TENANT ||--o{ PAYROLL : has
+    TENANT ||--o{ LEAVE : has
+
+    DEPARTMENT ||--o{ DEPARTMENT : "parent of"
+    EMPLOYEE ||--o{ DEPARTMENT : "works in"
+    EMPLOYEE ||--o{ ATTENDANCE : "has"
+    EMPLOYEE ||--o{ PAYROLL : "paid via"
+    EMPLOYEE ||--o{ LEAVE : "requests"
+
+    %% MRP relationships
+    TENANT ||--o{ BOM : has
+    TENANT ||--o{ PRODUCTIONORDER : has
+    TENANT ||--o{ QUALITYCHECK : has
+    TENANT ||--o{ INVENTORY : has
+    TENANT ||--o{ MACHINE : has
+
+    BOM ||--o{ BOMMATERIALLINE : contains
+    PRODUCT ||--o{ BOM : "has"
+    PRODUCTIONORDER ||--o{ PRODUCT : produces
+    PRODUCTIONORDER ||--o{ QUALITYCHECK : "checked by"
+    PRODUCT ||--o{ INVENTORY : "held in"
+    WAREHOUSE ||--o{ INVENTORY : "stores"

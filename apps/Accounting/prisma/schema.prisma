@@ -1,0 +1,805 @@
+// ============================================================
+// ERP Accounting Module — Prisma Schema
+// VAS (Vietnamese Accounting Standards) Compliant
+// Supports TT200 (large enterprises) + TT133 (SMEs)
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// CHART OF ACCOUNTS — VAS Hệ thống tài khoản kế toán
+// ============================================================
+
+model Account {
+  id              String        @id @default(cuid())
+  accountNumber   String                              // VAS account code (e.g., "111", "1111", "131")
+  name            String                              // Vietnamese name
+  nameEn          String?                             // English name (for IFRS reporting)
+  description     String?
+  accountType     AccountType                         // ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE
+  accountGroup    AccountGroup                        // VAS classification (1-9)
+  normalBalance   NormalBalance                       // DEBIT or CREDIT
+  parentId        String?                             // Hierarchy support
+  parent          Account?      @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children        Account[]     @relation("AccountHierarchy")
+  level           Int           @default(1)           // 1=group, 2=detail, 3=sub-detail
+  isActive        Boolean       @default(true)
+  isSystemAccount Boolean       @default(false)       // Cannot be deleted
+  isBankAccount   Boolean       @default(false)
+  currency        String        @default("VND")
+  vasCode         String?                             // Official VAS mapping code
+  ifrsCode        String?                             // IFRS mapping code (Enterprise tier)
+  tt200Code       String?                             // Thông tư 200 reference
+  tt133Code       String?                             // Thông tư 133 reference
+  openingBalance  Decimal       @default(0) @db.Decimal(18, 4)
+  currentBalance  Decimal       @default(0) @db.Decimal(18, 4)
+  tenantId        String
+  createdBy       String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  journalLines    JournalLine[]
+  apInvoices      APInvoice[]   @relation("APGLAccount")
+  arInvoices      ARInvoice[]   @relation("ARGLAccount")
+  budgetLines     BudgetLine[]
+
+  @@unique([accountNumber, tenantId])
+  @@index([tenantId, accountType])
+  @@index([tenantId, accountGroup])
+  @@index([tenantId, parentId])
+  @@map("acc_accounts")
+}
+
+enum AccountType {
+  ASSET              // Tài sản
+  LIABILITY          // Nợ phải trả
+  EQUITY             // Vốn chủ sở hữu
+  REVENUE            // Doanh thu
+  EXPENSE            // Chi phí
+  CONTRA_ASSET       // Khấu hao / dự phòng
+  CONTRA_REVENUE     // Giảm trừ doanh thu
+}
+
+enum AccountGroup {
+  GROUP_1   // Tài sản ngắn hạn (Current assets)
+  GROUP_2   // Tài sản dài hạn (Non-current assets)
+  GROUP_3   // Nợ phải trả (Liabilities)
+  GROUP_4   // Vốn chủ sở hữu (Equity)
+  GROUP_5   // Doanh thu (Revenue)
+  GROUP_6   // Chi phí sản xuất kinh doanh (Operating expenses)
+  GROUP_7   // Thu nhập khác (Other income)
+  GROUP_8   // Chi phí khác (Other expenses)
+  GROUP_9   // Xác định kết quả kinh doanh (P&L determination)
+}
+
+enum NormalBalance {
+  DEBIT
+  CREDIT
+}
+
+// ============================================================
+// FISCAL PERIODS — Kỳ kế toán
+// ============================================================
+
+model FiscalYear {
+  id         String       @id @default(cuid())
+  year       Int
+  startDate  DateTime
+  endDate    DateTime
+  isCurrent  Boolean      @default(false)
+  status     FiscalStatus @default(OPEN)
+  tenantId   String
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  periods    FiscalPeriod[]
+
+  @@unique([year, tenantId])
+  @@map("acc_fiscal_years")
+}
+
+model FiscalPeriod {
+  id           String       @id @default(cuid())
+  fiscalYearId String
+  fiscalYear   FiscalYear   @relation(fields: [fiscalYearId], references: [id])
+  period       Int                              // 1-12 for months, 13 for closing
+  name         String                           // "Tháng 1/2026", "Kỳ kết chuyển"
+  startDate    DateTime
+  endDate      DateTime
+  status       PeriodStatus @default(OPEN)
+  closedAt     DateTime?
+  closedBy     String?
+  tenantId     String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  journalEntries JournalEntry[]
+
+  @@unique([fiscalYearId, period])
+  @@index([tenantId, status])
+  @@map("acc_fiscal_periods")
+}
+
+enum FiscalStatus {
+  OPEN
+  CLOSED
+  LOCKED
+}
+
+enum PeriodStatus {
+  OPEN
+  SOFT_CLOSE    // No new entries, adjustments allowed
+  HARD_CLOSE    // Fully locked
+  REOPENED      // Temporarily reopened for adjustments
+}
+
+// ============================================================
+// JOURNAL ENTRIES — Bút toán kế toán
+// ============================================================
+
+model JournalEntry {
+  id              String         @id @default(cuid())
+  entryNumber     String                             // Auto-generated: JV-2026-000001
+  entryDate       DateTime
+  postingDate     DateTime?
+  fiscalPeriodId  String?
+  fiscalPeriod    FiscalPeriod?  @relation(fields: [fiscalPeriodId], references: [id])
+  journalType     JournalType
+  source          JournalSource
+  sourceModule    String?                            // 'mrp', 'hrm', 'otb', 'tpm', etc.
+  sourceRef       String?                            // Reference ID from source module
+  description     String
+  totalDebit      Decimal        @db.Decimal(18, 4)
+  totalCredit     Decimal        @db.Decimal(18, 4)
+  currency        String         @default("VND")
+  exchangeRate    Decimal        @default(1) @db.Decimal(12, 6)
+  status          JournalStatus  @default(DRAFT)
+  approvedBy      String?
+  approvedAt      DateTime?
+  postedBy        String?
+  postedAt        DateTime?
+  reversedBy      String?
+  reversedAt      DateTime?
+  reversalOf      String?                            // Original entry ID if this is a reversal
+  isRecurring     Boolean        @default(false)
+  recurringTemplateId String?
+  attachments     Json?                              // File attachments metadata
+  tags            String[]
+  tenantId        String
+  createdBy       String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  lines           JournalLine[]
+
+  @@unique([entryNumber, tenantId])
+  @@index([tenantId, entryDate])
+  @@index([tenantId, status])
+  @@index([tenantId, journalType])
+  @@index([tenantId, sourceModule, sourceRef])
+  @@map("acc_journal_entries")
+}
+
+model JournalLine {
+  id              String       @id @default(cuid())
+  journalEntryId  String
+  journalEntry    JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  lineNumber      Int
+  accountId       String
+  account         Account      @relation(fields: [accountId], references: [id])
+  description     String?
+  debitAmount     Decimal      @default(0) @db.Decimal(18, 4)
+  creditAmount    Decimal      @default(0) @db.Decimal(18, 4)
+  currency        String       @default("VND")
+  exchangeRate    Decimal      @default(1) @db.Decimal(12, 6)
+  baseCurrencyDebit   Decimal  @default(0) @db.Decimal(18, 4)
+  baseCurrencyCredit  Decimal  @default(0) @db.Decimal(18, 4)
+
+  // Dimensions — cho phân tích quản trị
+  departmentId    String?
+  costCenterId    String?
+  projectId       String?
+  customerId      String?
+  supplierId      String?
+  employeeId      String?
+  productId       String?
+
+  tenantId        String
+  createdAt       DateTime     @default(now())
+
+  @@index([journalEntryId])
+  @@index([accountId])
+  @@index([tenantId, departmentId])
+  @@index([tenantId, costCenterId])
+  @@map("acc_journal_lines")
+}
+
+enum JournalType {
+  GENERAL         // Phiếu kế toán tổng hợp
+  CASH_RECEIPT    // Phiếu thu
+  CASH_PAYMENT    // Phiếu chi
+  BANK_RECEIPT    // Báo có ngân hàng
+  BANK_PAYMENT    // Báo nợ ngân hàng
+  SALES           // Hóa đơn bán hàng
+  PURCHASE        // Hóa đơn mua hàng
+  PAYROLL         // Bảng lương
+  DEPRECIATION    // Khấu hao
+  ADJUSTMENT      // Bút toán điều chỉnh
+  CLOSING         // Bút toán kết chuyển
+  OPENING         // Bút toán đầu kỳ
+  REVERSAL        // Bút toán đảo
+}
+
+enum JournalSource {
+  MANUAL          // Nhập tay
+  SYSTEM          // Tự động từ module
+  IMPORT          // Import Excel/CSV
+  RECURRING       // Bút toán định kỳ
+  MIGRATION       // Chuyển đổi dữ liệu
+}
+
+enum JournalStatus {
+  DRAFT           // Nháp
+  PENDING         // Chờ duyệt
+  APPROVED        // Đã duyệt
+  POSTED          // Đã ghi sổ
+  REVERSED        // Đã đảo
+  REJECTED        // Từ chối
+}
+
+// ============================================================
+// ACCOUNTS PAYABLE (AP) — Công nợ phải trả
+// ============================================================
+
+model APInvoice {
+  id               String          @id @default(cuid())
+  invoiceNumber    String
+  vendorInvoiceNo  String?                            // Số hóa đơn nhà cung cấp
+  supplierId       String                             // From master data
+  supplierName     String
+  supplierTaxCode  String?
+  invoiceDate      DateTime
+  dueDate          DateTime
+  receivedDate     DateTime?
+  glAccountId      String?
+  glAccount        Account?        @relation("APGLAccount", fields: [glAccountId], references: [id])
+  subtotal         Decimal         @db.Decimal(18, 4)
+  vatAmount        Decimal         @default(0) @db.Decimal(18, 4)
+  vatRate          Decimal         @default(0.10) @db.Decimal(5, 4)
+  totalAmount      Decimal         @db.Decimal(18, 4)
+  paidAmount       Decimal         @default(0) @db.Decimal(18, 4)
+  remainingAmount  Decimal         @db.Decimal(18, 4)
+  currency         String          @default("VND")
+  exchangeRate     Decimal         @default(1) @db.Decimal(12, 6)
+  status           APInvoiceStatus @default(DRAFT)
+  paymentTermDays  Int             @default(30)
+  description      String?
+  eInvoiceRef      String?                            // Reference to e-Invoice
+  purchaseOrderRef String?                            // Reference to PO
+  journalEntryId   String?                            // GL posting reference
+  approvedBy       String?
+  approvedAt       DateTime?
+  tenantId         String
+  createdBy        String
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  lines            APInvoiceLine[]
+  payments         APPayment[]
+
+  @@unique([invoiceNumber, tenantId])
+  @@index([tenantId, supplierId])
+  @@index([tenantId, status])
+  @@index([tenantId, dueDate])
+  @@map("acc_ap_invoices")
+}
+
+model APInvoiceLine {
+  id             String    @id @default(cuid())
+  apInvoiceId    String
+  apInvoice      APInvoice @relation(fields: [apInvoiceId], references: [id], onDelete: Cascade)
+  lineNumber     Int
+  description    String
+  accountId      String?                    // GL account for expense
+  quantity       Decimal   @default(1) @db.Decimal(12, 4)
+  unitPrice      Decimal   @db.Decimal(18, 4)
+  amount         Decimal   @db.Decimal(18, 4)
+  vatRate        Decimal   @default(0) @db.Decimal(5, 4)
+  vatAmount      Decimal   @default(0) @db.Decimal(18, 4)
+  departmentId   String?
+  costCenterId   String?
+  projectId      String?
+  productId      String?
+  tenantId       String
+  createdAt      DateTime  @default(now())
+
+  @@index([apInvoiceId])
+  @@map("acc_ap_invoice_lines")
+}
+
+model APPayment {
+  id             String        @id @default(cuid())
+  paymentNumber  String
+  apInvoiceId    String
+  apInvoice      APInvoice     @relation(fields: [apInvoiceId], references: [id])
+  paymentDate    DateTime
+  amount         Decimal       @db.Decimal(18, 4)
+  currency       String        @default("VND")
+  method         PaymentMethod
+  bankAccountId  String?
+  reference      String?                             // Bank reference number
+  journalEntryId String?                             // GL posting reference
+  status         PaymentStatus @default(DRAFT)
+  tenantId       String
+  createdBy      String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([paymentNumber, tenantId])
+  @@index([tenantId, apInvoiceId])
+  @@map("acc_ap_payments")
+}
+
+enum APInvoiceStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+  DISPUTED
+}
+
+// ============================================================
+// ACCOUNTS RECEIVABLE (AR) — Công nợ phải thu
+// ============================================================
+
+model ARInvoice {
+  id               String          @id @default(cuid())
+  invoiceNumber    String
+  customerId       String                             // From master data
+  customerName     String
+  customerTaxCode  String?
+  invoiceDate      DateTime
+  dueDate          DateTime
+  glAccountId      String?
+  glAccount        Account?        @relation("ARGLAccount", fields: [glAccountId], references: [id])
+  subtotal         Decimal         @db.Decimal(18, 4)
+  vatAmount        Decimal         @default(0) @db.Decimal(18, 4)
+  vatRate          Decimal         @default(0.10) @db.Decimal(5, 4)
+  totalAmount      Decimal         @db.Decimal(18, 4)
+  paidAmount       Decimal         @default(0) @db.Decimal(18, 4)
+  remainingAmount  Decimal         @db.Decimal(18, 4)
+  currency         String          @default("VND")
+  exchangeRate     Decimal         @default(1) @db.Decimal(12, 6)
+  status           ARInvoiceStatus @default(DRAFT)
+  paymentTermDays  Int             @default(30)
+  description      String?
+  eInvoiceId       String?                            // Link to EInvoice record
+  eInvoice         EInvoice?       @relation(fields: [eInvoiceId], references: [id])
+  salesOrderRef    String?                            // Reference to SO
+  journalEntryId   String?
+  approvedBy       String?
+  approvedAt       DateTime?
+  tenantId         String
+  createdBy        String
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  lines            ARInvoiceLine[]
+  payments         ARPayment[]
+
+  @@unique([invoiceNumber, tenantId])
+  @@index([tenantId, customerId])
+  @@index([tenantId, status])
+  @@index([tenantId, dueDate])
+  @@map("acc_ar_invoices")
+}
+
+model ARInvoiceLine {
+  id             String    @id @default(cuid())
+  arInvoiceId    String
+  arInvoice      ARInvoice @relation(fields: [arInvoiceId], references: [id], onDelete: Cascade)
+  lineNumber     Int
+  description    String
+  accountId      String?                    // GL revenue account
+  quantity       Decimal   @default(1) @db.Decimal(12, 4)
+  unitPrice      Decimal   @db.Decimal(18, 4)
+  amount         Decimal   @db.Decimal(18, 4)
+  vatRate        Decimal   @default(0) @db.Decimal(5, 4)
+  vatAmount      Decimal   @default(0) @db.Decimal(18, 4)
+  cost           Decimal   @default(0) @db.Decimal(18, 4)
+  productId      String?
+  departmentId   String?
+  projectId      String?
+  tenantId       String
+  createdAt      DateTime  @default(now())
+
+  @@index([arInvoiceId])
+  @@map("acc_ar_invoice_lines")
+}
+
+model ARPayment {
+  id             String        @id @default(cuid())
+  paymentNumber  String
+  arInvoiceId    String
+  arInvoice      ARInvoice     @relation(fields: [arInvoiceId], references: [id])
+  paymentDate    DateTime
+  amount         Decimal       @db.Decimal(18, 4)
+  currency       String        @default("VND")
+  method         PaymentMethod
+  bankAccountId  String?
+  reference      String?
+  journalEntryId String?
+  status         PaymentStatus @default(DRAFT)
+  tenantId       String
+  createdBy      String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([paymentNumber, tenantId])
+  @@index([tenantId, arInvoiceId])
+  @@map("acc_ar_payments")
+}
+
+enum ARInvoiceStatus {
+  DRAFT
+  SENT
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+  WRITTEN_OFF
+}
+
+enum PaymentMethod {
+  CASH              // Tiền mặt
+  BANK_TRANSFER     // Chuyển khoản
+  CHECK             // Séc
+  CREDIT_CARD       // Thẻ tín dụng
+  OFFSET            // Bù trừ công nợ
+  OTHER
+}
+
+enum PaymentStatus {
+  DRAFT
+  PENDING
+  CONFIRMED
+  RECONCILED
+  CANCELLED
+}
+
+// ============================================================
+// E-INVOICE — Hóa đơn điện tử (Nghị định 123/2020)
+// ============================================================
+
+model EInvoice {
+  id                 String          @id @default(cuid())
+  invoiceTemplate    String          @default("01GTKT")    // Mẫu hóa đơn
+  invoiceSeries      String                                 // Ký hiệu: C26TAA
+  invoiceNumber      String                                 // Số hóa đơn
+  invoiceDate        DateTime
+  signedDate         DateTime?
+  sellerTaxCode      String                                 // MST người bán
+  sellerName         String
+  sellerAddress      String?
+  buyerTaxCode       String?                                // MST người mua
+  buyerName          String
+  buyerAddress       String?
+  paymentMethod      String?                                // Hình thức thanh toán
+  subtotal           Decimal         @db.Decimal(18, 4)
+  vatRate            Decimal         @default(0.10) @db.Decimal(5, 4)
+  vatAmount          Decimal         @db.Decimal(18, 4)
+  totalAmount        Decimal         @db.Decimal(18, 4)
+  amountInWords      String?                                // Số tiền bằng chữ
+  currency           String          @default("VND")
+  exchangeRate       Decimal         @default(1) @db.Decimal(12, 6)
+  status             EInvoiceStatus  @default(DRAFT)
+  lookupCode         String?                                // Mã tra cứu
+  digitalSignature   String?                                // Chữ ký số
+  qrCode             String?                                // QR code data
+  xmlContent         String?                                // XML content for tax authority
+  taxAuthorityCode   String?                                // Mã CQT
+  transmissionDate   DateTime?                              // Ngày truyền CQT
+  cancelReason       String?
+  adjustmentOf       String?                                // ID of original invoice (for adjustment)
+  replacementOf      String?                                // ID of original invoice (for replacement)
+  invoiceType        EInvoiceType    @default(ORIGINAL)
+  providerRef        String?                                // Reference from e-Invoice provider
+
+  tenantId           String
+  createdBy          String
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  lines              EInvoiceLine[]
+  arInvoices         ARInvoice[]
+
+  @@unique([invoiceSeries, invoiceNumber, tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, buyerTaxCode])
+  @@index([tenantId, invoiceDate])
+  @@map("acc_einvoices")
+}
+
+model EInvoiceLine {
+  id             String   @id @default(cuid())
+  eInvoiceId     String
+  eInvoice       EInvoice @relation(fields: [eInvoiceId], references: [id], onDelete: Cascade)
+  lineNumber     Int
+  itemName       String
+  itemCode       String?
+  unit           String?                              // Đơn vị tính
+  quantity       Decimal  @db.Decimal(12, 4)
+  unitPrice      Decimal  @db.Decimal(18, 4)
+  amount         Decimal  @db.Decimal(18, 4)
+  vatRate        Decimal  @default(0) @db.Decimal(5, 4)
+  vatAmount      Decimal  @default(0) @db.Decimal(18, 4)
+  discount       Decimal  @default(0) @db.Decimal(18, 4)
+  totalAmount    Decimal  @db.Decimal(18, 4)
+  tenantId       String
+  createdAt      DateTime @default(now())
+
+  @@index([eInvoiceId])
+  @@map("acc_einvoice_lines")
+}
+
+enum EInvoiceStatus {
+  DRAFT               // Nháp
+  SIGNED              // Đã ký số
+  SENT_TO_BUYER       // Đã gửi người mua
+  TRANSMITTED         // Đã truyền CQT
+  ACCEPTED            // CQT chấp nhận
+  REJECTED            // CQT từ chối
+  CANCELLED           // Đã hủy
+  ADJUSTED            // Đã điều chỉnh
+  REPLACED            // Đã thay thế
+  ERROR               // Lỗi
+}
+
+enum EInvoiceType {
+  ORIGINAL            // Hóa đơn gốc
+  ADJUSTMENT          // Hóa đơn điều chỉnh
+  REPLACEMENT         // Hóa đơn thay thế
+}
+
+// ============================================================
+// TAX — Thuế
+// ============================================================
+
+model TaxDeclaration {
+  id                String           @id @default(cuid())
+  declarationType   TaxDeclarationType
+  period            String                               // "2026-03", "2026-Q1", "2026"
+  periodType        TaxPeriodType
+  dueDate           DateTime
+  filingDate        DateTime?
+  taxableRevenue    Decimal          @default(0) @db.Decimal(18, 4)
+  taxAmount         Decimal          @default(0) @db.Decimal(18, 4)
+  deductibleTax     Decimal          @default(0) @db.Decimal(18, 4)
+  payableAmount     Decimal          @default(0) @db.Decimal(18, 4)
+  status            TaxStatus        @default(DRAFT)
+  xmlContent        String?                              // XML for e-Tax submission
+  confirmationCode  String?                              // From tax authority
+  notes             String?
+  tenantId          String
+  createdBy         String
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@unique([declarationType, period, tenantId])
+  @@index([tenantId, status])
+  @@map("acc_tax_declarations")
+}
+
+enum TaxDeclarationType {
+  VAT_MONTHLY           // Tờ khai thuế GTGT tháng
+  VAT_QUARTERLY         // Tờ khai thuế GTGT quý
+  CIT_QUARTERLY         // Thuế TNDN tạm tính quý
+  CIT_ANNUAL            // Quyết toán thuế TNDN năm
+  PIT_MONTHLY           // Tờ khai thuế TNCN tháng
+  PIT_ANNUAL            // Quyết toán thuế TNCN năm
+  FCT                   // Thuế nhà thầu nước ngoài
+  SPECIAL_CONSUMPTION   // Thuế tiêu thụ đặc biệt
+}
+
+enum TaxPeriodType {
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+}
+
+enum TaxStatus {
+  DRAFT
+  CALCULATED
+  REVIEWED
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+  AMENDED
+}
+
+// ============================================================
+// BANK RECONCILIATION — Đối chiếu ngân hàng
+// ============================================================
+
+model BankAccount {
+  id             String       @id @default(cuid())
+  accountNumber  String
+  bankName       String
+  branchName     String?
+  accountName    String
+  currency       String       @default("VND")
+  glAccountId    String                              // Linked GL account (112x)
+  isActive       Boolean      @default(true)
+  currentBalance Decimal      @default(0) @db.Decimal(18, 4)
+  tenantId       String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  reconciliations BankReconciliation[]
+
+  @@unique([accountNumber, tenantId])
+  @@map("acc_bank_accounts")
+}
+
+model BankReconciliation {
+  id               String                 @id @default(cuid())
+  bankAccountId    String
+  bankAccount      BankAccount            @relation(fields: [bankAccountId], references: [id])
+  period           String                                // "2026-03"
+  statementDate    DateTime
+  statementBalance Decimal                @db.Decimal(18, 4)
+  bookBalance      Decimal                @db.Decimal(18, 4)
+  difference       Decimal                @default(0) @db.Decimal(18, 4)
+  isReconciled     Boolean                @default(false)
+  reconciledAt     DateTime?
+  reconciledBy     String?
+  tenantId         String
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  items            BankReconciliationItem[]
+
+  @@unique([bankAccountId, period])
+  @@map("acc_bank_reconciliations")
+}
+
+model BankReconciliationItem {
+  id                   String             @id @default(cuid())
+  reconciliationId     String
+  reconciliation       BankReconciliation @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
+  transactionDate      DateTime
+  description          String
+  amount               Decimal            @db.Decimal(18, 4)
+  type                 String                           // DEPOSIT, WITHDRAWAL, FEE, INTEREST
+  bankRef              String?
+  journalEntryId       String?
+  isMatched            Boolean            @default(false)
+  matchedAt            DateTime?
+  tenantId             String
+  createdAt            DateTime           @default(now())
+
+  @@index([reconciliationId])
+  @@map("acc_bank_reconciliation_items")
+}
+
+// ============================================================
+// BUDGET — Ngân sách
+// ============================================================
+
+model Budget {
+  id           String       @id @default(cuid())
+  name         String
+  fiscalYear   Int
+  budgetType   BudgetType
+  status       BudgetStatus @default(DRAFT)
+  totalAmount  Decimal      @default(0) @db.Decimal(18, 4)
+  approvedBy   String?
+  approvedAt   DateTime?
+  tenantId     String
+  createdBy    String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  lines        BudgetLine[]
+
+  @@unique([name, fiscalYear, tenantId])
+  @@map("acc_budgets")
+}
+
+model BudgetLine {
+  id            String  @id @default(cuid())
+  budgetId      String
+  budget        Budget  @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  accountId     String
+  account       Account @relation(fields: [accountId], references: [id])
+  period        Int                              // Month 1-12
+  amount        Decimal @db.Decimal(18, 4)
+  actualAmount  Decimal @default(0) @db.Decimal(18, 4)
+  variance      Decimal @default(0) @db.Decimal(18, 4)
+  departmentId  String?
+  costCenterId  String?
+  tenantId      String
+
+  @@unique([budgetId, accountId, period, departmentId, costCenterId])
+  @@index([budgetId])
+  @@map("acc_budget_lines")
+}
+
+enum BudgetType {
+  OPERATING     // Ngân sách hoạt động
+  CAPITAL       // Ngân sách đầu tư
+  PROJECT       // Ngân sách dự án
+  DEPARTMENT    // Ngân sách phòng ban
+}
+
+enum BudgetStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  ACTIVE
+  CLOSED
+}
+
+// ============================================================
+// IFRS MAPPING (Enterprise Tier)
+// ============================================================
+
+model IFRSMapping {
+  id            String  @id @default(cuid())
+  vasAccountNo  String                           // VAS account number
+  ifrsAccountNo String                           // IFRS account number
+  ifrsLabel     String                           // IFRS account label
+  adjustmentType String?                          // RECLASSIFICATION, MEASUREMENT, PRESENTATION
+  description   String?
+  isActive      Boolean @default(true)
+  tenantId      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([vasAccountNo, ifrsAccountNo, tenantId])
+  @@map("acc_ifrs_mappings")
+}
+
+// ============================================================
+// RECURRING ENTRIES — Bút toán định kỳ
+// ============================================================
+
+model RecurringTemplate {
+  id             String           @id @default(cuid())
+  name           String
+  description    String?
+  journalType    JournalType
+  frequency      RecurringFreq
+  dayOfMonth     Int?                               // For monthly: which day
+  startDate      DateTime
+  endDate        DateTime?
+  lastRunDate    DateTime?
+  nextRunDate    DateTime?
+  isActive       Boolean          @default(true)
+  templateLines  Json                                // Array of line templates
+  tenantId       String
+  createdBy      String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@map("acc_recurring_templates")
+}
+
+enum RecurringFreq {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  ANNUALLY
+}

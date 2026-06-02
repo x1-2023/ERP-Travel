@@ -1,0 +1,197 @@
+/* ── Theme Variables ─────────────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  --bg-main: #0C0A09;
+  --bg-card: #0F0D0C;
+  --bg-input: #171412;
+  --bg-modal: #110F0D;
+  --text-primary: #E7E5E4;
+  --text-secondary: #D6D3D1;
+  --text-muted: #A8A29E;
+  --text-dim: #78716C;
+  --text-faint: #57534E;
+  --text-disabled: #44403C;
+  --border: #292524;
+  --border-a10: #29252410;
+  --border-a20: #29252420;
+  --hover-bg: #292524;
+  --hover-bg-subtle: #171412;
+  --shadow-color: rgba(0, 0, 0, 0.5);
+  --overlay: rgba(0, 0, 0, 0.85);
+  --scrollbar-thumb-hover: #44403C;
+  --selection-color: #E7E5E4;
+  --login-gradient: radial-gradient(ellipse at 30% 20%, #1C1917 0%, #0C0A09 70%);
+}
+
+[data-theme="light"] {
+  --bg-main: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --bg-input: #F1F5F9;
+  --bg-modal: #FFFFFF;
+  --text-primary: #0F172A;
+  --text-secondary: #1E293B;
+  --text-muted: #475569;
+  --text-dim: #64748B;
+  --text-faint: #94A3B8;
+  --text-disabled: #CBD5E1;
+  --border: #CBD5E1;
+  --border-a10: #CBD5E110;
+  --border-a20: #CBD5E120;
+  --hover-bg: #E2E8F0;
+  --hover-bg-subtle: #F1F5F9;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --overlay: rgba(0, 0, 0, 0.5);
+  --scrollbar-thumb-hover: #94A3B8;
+  --selection-color: #0F172A;
+  --login-gradient: radial-gradient(ellipse at 30% 20%, #E0E7FF 0%, #F8FAFC 70%);
+}
+
+/* ── Base Reset ─────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-card);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+input, select, textarea {
+  font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif;
+}
+
+button {
+  font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif;
+}
+
+::selection {
+  background: #3B82F640;
+  color: var(--selection-color);
+}
+
+/* ── Tab Bar Horizontal Scroll ──────────────────────────────── */
+.tab-bar {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.tab-bar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Responsive: Metric Cards ─────────────────────────────── */
+.metric-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Responsive: Tablet (768–1024px) ──────────────────────── */
+@media (max-width: 1024px) {
+  .metric-row > * {
+    min-width: calc(33.333% - 6px) !important;
+    flex: 1 1 calc(33.333% - 6px) !important;
+  }
+  .chart-grid-2col {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Responsive: Mobile (<768px) ──────────────────────────── */
+@media (max-width: 768px) {
+  .metric-row > * {
+    min-width: calc(50% - 4px) !important;
+    flex: 1 1 calc(50% - 4px) !important;
+  }
+  .chart-grid-2col {
+    grid-template-columns: 1fr !important;
+  }
+  .issue-grid-row {
+    grid-template-columns: 1fr !important;
+    gap: 4px !important;
+  }
+  .issue-grid-header {
+    display: none !important;
+  }
+  .content-pad {
+    padding: 10px 12px !important;
+  }
+  .modal-full-mobile {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    min-height: 100vh !important;
+  }
+  .risk-panel-flex {
+    flex-direction: column !important;
+  }
+}
+
+/* ── Loading Skeleton Shimmer ─────────────────────────────── */
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-card) 25%,
+    var(--hover-bg) 50%,
+    var(--bg-card) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+.skeleton-text {
+  height: 14px;
+  margin-bottom: 8px;
+  width: 80%;
+}
+
+.skeleton-text-short {
+  height: 14px;
+  margin-bottom: 8px;
+  width: 40%;
+}
+
+.skeleton-card {
+  height: 80px;
+  margin-bottom: 10px;
+}
+
+.skeleton-row {
+  height: 36px;
+  margin-bottom: 4px;
+}
+
+.skeleton-metric {
+  height: 64px;
+  min-width: 120px;
+  flex: 1;
+}

@@ -1,0 +1,108 @@
+graph TB
+    subgraph "Client Layer"
+        WEB["Web Apps<br/>Next.js 14"]
+        MOBILE["Mobile Apps<br/>React Native"]
+        DESKTOP["Desktop Client<br/>Electron"]
+    end
+
+    subgraph "API Gateway & Auth"
+        KONG["Kong Gateway<br/>Rate Limit, Auth, Routing"]
+        KC["Keycloak<br/>Identity & Access Mgmt"]
+    end
+
+    subgraph "Microservices"
+        CRM["CRM Service<br/>Node.js + Prisma"]
+        ACC["Accounting Service<br/>Node.js + Prisma"]
+        INV["Inventory Service<br/>Node.js + Prisma"]
+        HRM["HRM Service<br/>Node.js + Prisma"]
+        ECOM["Ecommerce Service<br/>Node.js + Prisma"]
+        MRP["MRP Service<br/>Node.js + Prisma"]
+        PAY["Payroll Service<br/>Node.js + Prisma"]
+    end
+
+    subgraph "Data & Events"
+        PG["PostgreSQL 16<br/>Primary Database"]
+        REDIS["Redis<br/>Cache & Sessions"]
+        NATS["NATS JetStream<br/>Event Streaming"]
+    end
+
+    subgraph "Infrastructure"
+        K8S["Kubernetes Cluster<br/>Helm Deployments"]
+        TF["Terraform<br/>Multi-Cloud IaC"]
+    end
+
+    subgraph "External Services"
+        VN["Vietnam Compliance<br/>TT200, NĐ123, BHXH"]
+        EMAIL["Email Service<br/>SendGrid/SES"]
+        STORAGE["Object Storage<br/>S3/GCS"]
+    end
+
+    WEB -->|HTTPS| KONG
+    MOBILE -->|HTTPS| KONG
+    DESKTOP -->|HTTPS| KONG
+
+    KONG -->|OAuth2/OIDC| KC
+    KONG -->|Route to Services| CRM
+    KONG -->|Route to Services| ACC
+    KONG -->|Route to Services| INV
+    KONG -->|Route to Services| HRM
+    KONG -->|Route to Services| ECOM
+    KONG -->|Route to Services| MRP
+    KONG -->|Route to Services| PAY
+
+    CRM -->|Query/Mutate| PG
+    ACC -->|Query/Mutate| PG
+    INV -->|Query/Mutate| PG
+    HRM -->|Query/Mutate| PG
+    ECOM -->|Query/Mutate| PG
+    MRP -->|Query/Mutate| PG
+    PAY -->|Query/Mutate| PG
+
+    CRM -->|Cache| REDIS
+    ACC -->|Cache| REDIS
+    INV -->|Cache| REDIS
+
+    CRM -->|Publish/Subscribe| NATS
+    ACC -->|Publish/Subscribe| NATS
+    INV -->|Publish/Subscribe| NATS
+    HRM -->|Publish/Subscribe| NATS
+    ECOM -->|Publish/Subscribe| NATS
+    MRP -->|Publish/Subscribe| NATS
+    PAY -->|Publish/Subscribe| NATS
+
+    K8S -->|Manages| KONG
+    K8S -->|Manages| CRM
+    K8S -->|Manages| ACC
+    K8S -->|Manages| INV
+    K8S -->|Manages| HRM
+    K8S -->|Manages| ECOM
+    K8S -->|Manages| MRP
+    K8S -->|Manages| PAY
+    K8S -->|Manages| NATS
+
+    TF -->|Provisions| K8S
+    TF -->|Provisions| PG
+    TF -->|Provisions| REDIS
+
+    ACC -->|Compliance| VN
+    PAY -->|Compliance| VN
+
+    CRM -->|Send Events| EMAIL
+    HRM -->|Send Events| EMAIL
+
+    ACC -->|Store Docs| STORAGE
+    ECOM -->|Store Assets| STORAGE
+
+    classDef client fill:#E3F2FD,stroke:#1976D2
+    classDef gateway fill:#FFF3E0,stroke:#F57C00
+    classDef service fill:#E8F5E9,stroke:#388E3C
+    classDef data fill:#FCE4EC,stroke:#C2185B
+    classDef infra fill:#F3E5F5,stroke:#7B1FA2
+    classDef external fill:#E0F2F1,stroke:#00897B
+
+    class WEB,MOBILE,DESKTOP client
+    class KONG,KC gateway
+    class CRM,ACC,INV,HRM,ECOM,MRP,PAY service
+    class PG,REDIS,NATS data
+    class K8S,TF infra
+    class VN,EMAIL,STORAGE external

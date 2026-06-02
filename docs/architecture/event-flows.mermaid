@@ -1,0 +1,80 @@
+graph LR
+    subgraph "CRM Events"
+        CRM_CUSTOMER["crm.customer.created<br/>crm.customer.updated<br/>crm.contact.added"]
+    end
+
+    subgraph "Accounting Events"
+        ACC_INVOICE["acc.invoice.created<br/>acc.invoice.submitted<br/>acc.ledger.entry.posted"]
+    end
+
+    subgraph "Inventory Events"
+        INV_STOCK["inv.product.created<br/>inv.stock.adjusted<br/>inv.warehouse.updated"]
+    end
+
+    subgraph "Ecommerce Events"
+        ECOM_ORDER["ecom.order.placed<br/>ecom.order.shipped<br/>ecom.payment.received"]
+    end
+
+    subgraph "HRM Events"
+        HRM_PAYROLL["hrm.employee.added<br/>hrm.salary.defined<br/>hrm.payroll.processed"]
+    end
+
+    subgraph "MRP Events"
+        MRP_MANUFACTURING["mrp.bom.created<br/>mrp.production.started<br/>mrp.production.completed"]
+    end
+
+    subgraph "Payroll Events"
+        PAY_DEDUCTION["pay.salary.calculated<br/>pay.deduction.applied<br/>pay.contribution.submitted"]
+    end
+
+    subgraph "NATS JetStream Consumers"
+        ANALYTICS["Analytics Consumer<br/>Aggregates Events<br/>Updates Data Warehouse"]
+        AUDIT["Audit Consumer<br/>Logs All Events<br/>Compliance Trail"]
+        NOTIFY["Notification Consumer<br/>Sends Emails/SMS<br/>Dashboard Updates"]
+        REPORTING["Reporting Consumer<br/>Triggers Reports<br/>Scheduled Jobs"]
+    end
+
+    CRM_CUSTOMER -->|Publish| NATS["NATS JetStream<br/>Durable Streams<br/>30-Day Retention"]
+    ACC_INVOICE -->|Publish| NATS
+    INV_STOCK -->|Publish| NATS
+    ECOM_ORDER -->|Publish| NATS
+    HRM_PAYROLL -->|Publish| NATS
+    MRP_MANUFACTURING -->|Publish| NATS
+    PAY_DEDUCTION -->|Publish| NATS
+
+    NATS -->|Subscribe| ANALYTICS
+    NATS -->|Subscribe| AUDIT
+    NATS -->|Subscribe| NOTIFY
+    NATS -->|Subscribe| REPORTING
+
+    subgraph "Event Flow Examples"
+        E1["CRM creates customer<br/>→ crm.customer.created<br/>→ ACC creates deferred credit account<br/>→ ECOM unlocks customer profile"]
+        E2["ECOM places order<br/>→ ecom.order.placed<br/>→ INV adjusts stock<br/>→ MRP checks BOM<br/>→ ACC books AR invoice"]
+        E3["HRM processes payroll<br/>→ hrm.payroll.processed<br/>→ PAY calculates deductions<br/>→ PAY submits BHXH<br/>→ ACC posts payroll expense"]
+        E4["INV stock low<br/>→ inv.stock.adjusted<br/>→ NOTIFY alerts buyer<br/>→ REPORTING triggers reorder"]
+    end
+
+    style E1 fill:#E8F5E9,stroke:#388E3C
+    style E2 fill:#E8F5E9,stroke:#388E3C
+    style E3 fill:#E8F5E9,stroke:#388E3C
+    style E4 fill:#E8F5E9,stroke:#388E3C
+
+    classDef crm fill:#E3F2FD,stroke:#1976D2
+    classDef acc fill:#FFF3E0,stroke:#F57C00
+    classDef inv fill:#F3E5F5,stroke:#7B1FA2
+    classDef ecom fill:#FCE4EC,stroke:#C2185B
+    classDef hrm fill:#E0F2F1,stroke:#00897B
+    classDef mrp fill:#FFE0B2,stroke:#FF6F00
+    classDef pay fill:#F1F8E9,stroke:#689F38
+    classDef nats fill:#ECEFF1,stroke:#455A64,stroke-width:2px
+    classDef consumer fill:#FFF9C4,stroke:#F9A825,stroke-width:2px
+
+    class CRM_CUSTOMER crm
+    class ACC_INVOICE acc
+    class INV_STOCK inv
+    class ECOM_ORDER ecom
+    class HRM_PAYROLL hrm
+    class MRP_MANUFACTURING mrp
+    class PAY_DEDUCTION pay
+    class NATS nats
+    class ANALYTICS,AUDIT,NOTIFY,REPORTING consumer

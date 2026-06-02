@@ -1,0 +1,863 @@
+// ============================================================
+// VietERP TravelOps Module - Prisma Schema
+// Travel agency and tour operator operations.
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TourMarket {
+  DOMESTIC
+  INBOUND
+  OUTBOUND
+}
+
+enum TourType {
+  PACKAGE
+  PRIVATE
+  SERIES
+  MICE
+  TAILOR_MADE
+  DAY_TRIP
+}
+
+enum TourPackageStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  RETIRED
+}
+
+enum DepartureStatus {
+  PLANNED
+  OPEN
+  GUARANTEED
+  CLOSED
+  OPERATING
+  COMPLETED
+  CANCELLED
+}
+
+enum BookingSource {
+  DIRECT
+  WEBSITE
+  AGENT
+  OTA
+  CORPORATE
+  WALK_IN
+}
+
+enum BookingCustomerType {
+  INDIVIDUAL
+  FAMILY
+  GROUP
+  CORPORATE
+  AGENT
+}
+
+enum BookingStatus {
+  INQUIRY
+  QUOTED
+  RESERVED
+  CONFIRMED
+  WAITLISTED
+  CANCELLED
+  NO_SHOW
+  COMPLETED
+}
+
+enum PassengerType {
+  ADULT
+  CHILD
+  INFANT
+  SENIOR
+}
+
+enum PassengerGender {
+  MALE
+  FEMALE
+  OTHER
+  UNSPECIFIED
+}
+
+enum VisaStatus {
+  NOT_REQUIRED
+  PENDING
+  SUBMITTED
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum SupplierType {
+  HOTEL
+  TRANSPORT
+  AIRLINE
+  RESTAURANT
+  GUIDE
+  ATTRACTION
+  INSURANCE
+  VISA
+  DMC
+  OTHER
+}
+
+enum SupplierStatus {
+  PROSPECT
+  ACTIVE
+  SUSPENDED
+  BLACKLISTED
+}
+
+enum ServiceCategory {
+  ACCOMMODATION
+  TRANSPORT
+  FLIGHT
+  MEAL
+  GUIDE
+  TICKET
+  VISA
+  INSURANCE
+  TOUR_OPERATION
+  OTHER
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+enum CostType {
+  FIXED
+  PER_PERSON
+  PER_ROOM
+  PER_GROUP
+  PER_DAY
+  VARIABLE
+}
+
+enum CostLineStatus {
+  ESTIMATED
+  ORDERED
+  CONFIRMED
+  INVOICED
+  PAID
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CARD
+  E_WALLET
+  VOUCHER
+  OTHER
+}
+
+enum PaymentStatus {
+  DRAFT
+  PENDING
+  AUTHORIZED
+  PAID
+  PARTIALLY_REFUNDED
+  REFUNDED
+  FAILED
+  CANCELLED
+}
+
+enum CommissionBasis {
+  PERCENT_OF_REVENUE
+  FIXED_PER_BOOKING
+  FIXED_PER_PASSENGER
+}
+
+enum CommissionStatus {
+  ACCRUED
+  APPROVED
+  PAYABLE
+  PAID
+  CANCELLED
+}
+
+enum VoucherStatus {
+  DRAFT
+  ISSUED
+  SENT
+  ACKNOWLEDGED
+  CONSUMED
+  VOID
+}
+
+enum GuideRole {
+  TOUR_LEADER
+  LOCAL_GUIDE
+  DRIVER_GUIDE
+  ASSISTANT
+}
+
+enum AssignmentStatus {
+  PLANNED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum TravelDocumentType {
+  PASSPORT
+  VISA
+  ID_CARD
+  TICKET
+  VOUCHER
+  CONTRACT
+  INSURANCE
+  OTHER
+}
+
+enum DocumentStatus {
+  REQUIRED
+  REQUESTED
+  RECEIVED
+  VERIFIED
+  EXPIRED
+  REJECTED
+}
+
+enum InsuranceStatus {
+  NOT_REQUIRED
+  PENDING
+  ISSUED
+  CLAIMED
+  CANCELLED
+  EXPIRED
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+  CLOSED
+}
+
+enum VietErpModule {
+  ACCOUNTING
+  CRM
+  HRM
+  PM
+  EXCEL_AI
+  MASTER_DATA
+  DOCUMENTS
+  NOTIFICATIONS
+}
+
+enum IntegrationDirection {
+  OUTBOUND
+  INBOUND
+  BIDIRECTIONAL
+}
+
+enum IntegrationSyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+  SKIPPED
+}
+
+model TourPackage {
+  id                      String            @id @default(cuid())
+  tenantId                String
+  code                    String
+  name                    String
+  description             String?
+  market                  TourMarket
+  type                    TourType
+  status                  TourPackageStatus @default(DRAFT)
+  destinationCountry      String?
+  destinationRegion       String?
+  startCity               String?
+  endCity                 String?
+  durationDays            Int
+  durationNights          Int
+  minPax                  Int               @default(1)
+  maxPax                  Int?
+  defaultCurrency         String            @default("VND")
+  defaultAdultPrice       Decimal           @default(0) @db.Decimal(18, 4)
+  defaultChildPrice       Decimal?          @db.Decimal(18, 4)
+  defaultCostEstimate     Decimal           @default(0) @db.Decimal(18, 4)
+  tags                    String[]
+  ownerEmployeeRef        String?
+  crmCampaignRef          String?
+  pmTemplateProjectRef    String?
+  accountingCostCenterRef String?
+  createdByEmployeeRef    String?
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+
+  departures      TourDeparture[]
+  itineraryDays   TourItineraryDay[]
+  priceTiers      TourPriceTier[]
+  costLines       TourCostLine[]
+  vouchers        ServiceVoucher[]
+  documents       TravelDocument[]
+  incidents       TourIncident[]
+  profitSnapshots TourProfitSnapshot[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, status])
+  @@index([tenantId, market, type])
+  @@map("travel_tour_packages")
+}
+
+model TourItineraryDay {
+  id           String   @id @default(cuid())
+  tenantId     String
+  packageId    String
+  dayNumber    Int
+  title        String
+  city         String?
+  description  String?
+  meals        String[]
+  serviceNotes String?
+  supplierRefs String[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tourPackage TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, dayNumber])
+  @@index([tenantId, packageId])
+  @@map("travel_itinerary_days")
+}
+
+model TourPriceTier {
+  id                String    @id @default(cuid())
+  tenantId          String
+  packageId         String
+  name              String
+  minPax            Int
+  maxPax            Int?
+  currency          String    @default("VND")
+  adultPrice        Decimal   @db.Decimal(18, 4)
+  childPrice        Decimal?  @db.Decimal(18, 4)
+  infantPrice       Decimal?  @db.Decimal(18, 4)
+  singleSup         Decimal?  @db.Decimal(18, 4)
+  validFrom         DateTime? @db.Date
+  validTo           DateTime? @db.Date
+  accountingItemRef String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  tourPackage TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, packageId])
+  @@index([tenantId, validFrom, validTo])
+  @@map("travel_price_tiers")
+}
+
+model TourDeparture {
+  id                      String          @id @default(cuid())
+  tenantId                String
+  packageId               String
+  code                    String
+  startDate               DateTime        @db.Date
+  endDate                 DateTime        @db.Date
+  status                  DepartureStatus @default(PLANNED)
+  capacity                Int
+  bookedPax               Int             @default(0)
+  confirmedPax            Int             @default(0)
+  waitlistedPax           Int             @default(0)
+  currency                String          @default("VND")
+  revenueTarget           Decimal         @default(0) @db.Decimal(18, 4)
+  costBudget              Decimal         @default(0) @db.Decimal(18, 4)
+  operatorEmployeeRef     String?
+  pmProjectRef            String?
+  accountingCostCenterRef String?
+  notes                   String?
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+
+  tourPackage     TourPackage          @relation(fields: [packageId], references: [id])
+  bookings        Booking[]
+  costLines       TourCostLine[]
+  vouchers        ServiceVoucher[]
+  guides          GuideAssignment[]
+  documents       TravelDocument[]
+  incidents       TourIncident[]
+  profitSnapshots TourProfitSnapshot[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, packageId, startDate])
+  @@index([tenantId, status])
+  @@map("travel_departures")
+}
+
+model Booking {
+  id                   String              @id @default(cuid())
+  tenantId             String
+  departureId          String
+  bookingNo            String
+  source               BookingSource       @default(DIRECT)
+  customerType         BookingCustomerType @default(INDIVIDUAL)
+  status               BookingStatus       @default(INQUIRY)
+  customerRef          String?
+  crmLeadRef           String?
+  crmOpportunityRef    String?
+  agentSupplierId      String?
+  contactName          String
+  contactEmail         String?
+  contactPhone         String?
+  paxCount             Int                 @default(1)
+  adultCount           Int                 @default(1)
+  childCount           Int                 @default(0)
+  infantCount          Int                 @default(0)
+  currency             String              @default("VND")
+  grossAmount          Decimal             @default(0) @db.Decimal(18, 4)
+  discountAmount       Decimal             @default(0) @db.Decimal(18, 4)
+  taxAmount            Decimal             @default(0) @db.Decimal(18, 4)
+  netAmount            Decimal             @default(0) @db.Decimal(18, 4)
+  depositDueAmount     Decimal             @default(0) @db.Decimal(18, 4)
+  paidAmount           Decimal             @default(0) @db.Decimal(18, 4)
+  balanceDueAmount     Decimal             @default(0) @db.Decimal(18, 4)
+  bookedAt             DateTime            @default(now())
+  confirmedAt          DateTime?
+  cancelledAt          DateTime?
+  salesEmployeeRef     String?
+  accountingInvoiceRef String?
+  notes                String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  departure      TourDeparture       @relation(fields: [departureId], references: [id])
+  agentSupplier  Supplier?           @relation("AgentBookings", fields: [agentSupplierId], references: [id])
+  passengers     BookingPassenger[]
+  payments       BookingPayment[]
+  commissions    AgentCommission[]
+  vouchers       ServiceVoucher[]
+  documents      TravelDocument[]
+  incidents      TourIncident[]
+  insurancePolicies TravelInsurancePolicy[]
+  profitSnapshots TourProfitSnapshot[]
+
+  @@unique([tenantId, bookingNo])
+  @@index([tenantId, departureId])
+  @@index([tenantId, status])
+  @@index([tenantId, customerRef])
+  @@map("travel_bookings")
+}
+
+model BookingPassenger {
+  id                 String          @id @default(cuid())
+  tenantId           String
+  bookingId          String
+  passengerNo        Int
+  type               PassengerType   @default(ADULT)
+  fullName           String
+  gender             PassengerGender @default(UNSPECIFIED)
+  dateOfBirth        DateTime?       @db.Date
+  nationality        String?
+  passportNo         String?
+  passportExpiryDate DateTime?       @db.Date
+  visaStatus         VisaStatus      @default(NOT_REQUIRED)
+  specialRequests    String?
+  emergencyContact   String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  booking           Booking                 @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  documents         TravelDocument[]
+  insurancePolicies TravelInsurancePolicy[]
+
+  @@unique([bookingId, passengerNo])
+  @@index([tenantId, bookingId])
+  @@index([tenantId, passportNo])
+  @@map("travel_booking_passengers")
+}
+
+model Supplier {
+  id                  String         @id @default(cuid())
+  tenantId            String
+  code                String
+  name                String
+  type                SupplierType
+  status              SupplierStatus @default(PROSPECT)
+  country             String?
+  city                String?
+  contactName         String?
+  contactEmail        String?
+  contactPhone        String?
+  taxCode             String?
+  defaultCurrency     String         @default("VND")
+  accountingVendorRef String?
+  crmAccountRef       String?
+  rating              Int?
+  notes               String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  contracts         SupplierContract[]
+  rates             SupplierRate[]
+  costLines         TourCostLine[]
+  vouchers          ServiceVoucher[]
+  agentBookings     Booking[]                @relation("AgentBookings")
+  commissions       AgentCommission[]
+  guideAssignments  GuideAssignment[]
+  insurancePolicies TravelInsurancePolicy[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, type, status])
+  @@map("travel_suppliers")
+}
+
+model SupplierContract {
+  id                  String         @id @default(cuid())
+  tenantId            String
+  supplierId          String
+  contractNo          String
+  title               String
+  status              ContractStatus @default(DRAFT)
+  startDate           DateTime       @db.Date
+  endDate             DateTime?      @db.Date
+  currency            String         @default("VND")
+  paymentTerms        String?
+  cancellationPolicy  String?
+  documentRef         String?
+  accountingVendorRef String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  supplier  Supplier       @relation(fields: [supplierId], references: [id])
+  rates     SupplierRate[]
+  costLines TourCostLine[]
+
+  @@unique([tenantId, contractNo])
+  @@index([tenantId, supplierId, status])
+  @@map("travel_supplier_contracts")
+}
+
+model SupplierRate {
+  id                String          @id @default(cuid())
+  tenantId          String
+  supplierId        String
+  contractId        String?
+  serviceCategory   ServiceCategory
+  name              String
+  description       String?
+  currency          String          @default("VND")
+  unitCost          Decimal         @db.Decimal(18, 4)
+  costType          CostType        @default(PER_PERSON)
+  minPax            Int?
+  maxPax            Int?
+  validFrom         DateTime?       @db.Date
+  validTo           DateTime?       @db.Date
+  accountingItemRef String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  supplier Supplier          @relation(fields: [supplierId], references: [id])
+  contract SupplierContract? @relation(fields: [contractId], references: [id])
+
+  @@index([tenantId, supplierId, serviceCategory])
+  @@index([tenantId, validFrom, validTo])
+  @@map("travel_supplier_rates")
+}
+
+model TourCostLine {
+  id                   String          @id @default(cuid())
+  tenantId             String
+  packageId            String?
+  departureId          String?
+  supplierId           String?
+  contractId           String?
+  serviceCategory      ServiceCategory
+  costType             CostType        @default(PER_PERSON)
+  status               CostLineStatus  @default(ESTIMATED)
+  description          String
+  quantity             Decimal         @default(1) @db.Decimal(18, 4)
+  unitCost             Decimal         @default(0) @db.Decimal(18, 4)
+  taxAmount            Decimal         @default(0) @db.Decimal(18, 4)
+  totalCost            Decimal         @default(0) @db.Decimal(18, 4)
+  currency             String          @default("VND")
+  serviceDate          DateTime?       @db.Date
+  accountingBillRef    String?
+  purchaseRequestRef   String?
+  createdByEmployeeRef String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  tourPackage TourPackage?      @relation(fields: [packageId], references: [id])
+  departure   TourDeparture?    @relation(fields: [departureId], references: [id])
+  supplier    Supplier?         @relation(fields: [supplierId], references: [id])
+  contract    SupplierContract? @relation(fields: [contractId], references: [id])
+
+  @@index([tenantId, packageId])
+  @@index([tenantId, departureId])
+  @@index([tenantId, supplierId])
+  @@index([tenantId, status])
+  @@map("travel_cost_lines")
+}
+
+model BookingPayment {
+  id                   String        @id @default(cuid())
+  tenantId             String
+  bookingId            String
+  paymentNo            String
+  method               PaymentMethod
+  status               PaymentStatus @default(PENDING)
+  amount               Decimal       @db.Decimal(18, 4)
+  currency             String        @default("VND")
+  paidAt               DateTime?
+  dueDate              DateTime?     @db.Date
+  payerName            String?
+  bankTransactionRef   String?
+  accountingPaymentRef String?
+  notes                String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, paymentNo])
+  @@index([tenantId, bookingId])
+  @@index([tenantId, status])
+  @@map("travel_booking_payments")
+}
+
+model AgentCommission {
+  id                   String           @id @default(cuid())
+  tenantId             String
+  bookingId            String
+  agentSupplierId      String?
+  basis                CommissionBasis
+  status               CommissionStatus @default(ACCRUED)
+  rate                 Decimal?         @db.Decimal(10, 4)
+  amount               Decimal          @db.Decimal(18, 4)
+  currency             String           @default("VND")
+  payableDate          DateTime?        @db.Date
+  accountingBillRef    String?
+  accountingPaymentRef String?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  booking       Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  agentSupplier Supplier? @relation(fields: [agentSupplierId], references: [id])
+
+  @@index([tenantId, bookingId])
+  @@index([tenantId, agentSupplierId, status])
+  @@map("travel_agent_commissions")
+}
+
+model ServiceVoucher {
+  id                  String          @id @default(cuid())
+  tenantId            String
+  voucherNo           String
+  status              VoucherStatus   @default(DRAFT)
+  packageId           String?
+  departureId         String?
+  bookingId           String?
+  supplierId          String?
+  serviceCategory     ServiceCategory
+  serviceDate         DateTime?       @db.Date
+  guestName           String?
+  paxCount            Int             @default(1)
+  details             String?
+  issuedByEmployeeRef String?
+  sentAt              DateTime?
+  consumedAt          DateTime?
+  fileRef             String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  tourPackage TourPackage?   @relation(fields: [packageId], references: [id])
+  departure   TourDeparture? @relation(fields: [departureId], references: [id])
+  booking     Booking?       @relation(fields: [bookingId], references: [id])
+  supplier    Supplier?      @relation(fields: [supplierId], references: [id])
+
+  @@unique([tenantId, voucherNo])
+  @@index([tenantId, departureId])
+  @@index([tenantId, bookingId])
+  @@index([tenantId, supplierId])
+  @@index([tenantId, status])
+  @@map("travel_service_vouchers")
+}
+
+model GuideAssignment {
+  id               String           @id @default(cuid())
+  tenantId         String
+  departureId      String
+  guideEmployeeRef String?
+  guideSupplierId  String?
+  role             GuideRole
+  status           AssignmentStatus @default(PLANNED)
+  startAt          DateTime?
+  endAt            DateTime?
+  feeAmount        Decimal          @default(0) @db.Decimal(18, 4)
+  currency         String           @default("VND")
+  notes            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  departure    TourDeparture @relation(fields: [departureId], references: [id], onDelete: Cascade)
+  guideSupplier Supplier?    @relation(fields: [guideSupplierId], references: [id])
+
+  @@index([tenantId, departureId])
+  @@index([tenantId, guideEmployeeRef])
+  @@index([tenantId, guideSupplierId])
+  @@map("travel_guide_assignments")
+}
+
+model TravelDocument {
+  id                    String             @id @default(cuid())
+  tenantId              String
+  type                  TravelDocumentType
+  status                DocumentStatus     @default(REQUIRED)
+  packageId             String?
+  departureId           String?
+  bookingId             String?
+  passengerId           String?
+  documentNo            String?
+  issuedDate            DateTime?          @db.Date
+  expiryDate            DateTime?          @db.Date
+  fileRef               String?
+  externalRef           String?
+  verifiedByEmployeeRef String?
+  verifiedAt            DateTime?
+  notes                 String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  tourPackage TourPackage?      @relation(fields: [packageId], references: [id])
+  departure   TourDeparture?    @relation(fields: [departureId], references: [id])
+  booking     Booking?          @relation(fields: [bookingId], references: [id])
+  passenger   BookingPassenger? @relation(fields: [passengerId], references: [id])
+
+  @@index([tenantId, packageId])
+  @@index([tenantId, departureId])
+  @@index([tenantId, bookingId])
+  @@index([tenantId, passengerId])
+  @@index([tenantId, status])
+  @@map("travel_documents")
+}
+
+model TravelInsurancePolicy {
+  id                 String          @id @default(cuid())
+  tenantId           String
+  bookingId          String
+  passengerId        String?
+  policyNo           String?
+  providerSupplierId String?
+  status             InsuranceStatus @default(PENDING)
+  coverageAmount     Decimal?        @db.Decimal(18, 4)
+  premiumAmount      Decimal         @default(0) @db.Decimal(18, 4)
+  currency           String          @default("VND")
+  startsAt           DateTime?
+  endsAt             DateTime?
+  documentRef        String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  booking          Booking           @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  passenger        BookingPassenger? @relation(fields: [passengerId], references: [id])
+  providerSupplier Supplier?         @relation(fields: [providerSupplierId], references: [id])
+
+  @@index([tenantId, bookingId])
+  @@index([tenantId, passengerId])
+  @@index([tenantId, providerSupplierId])
+  @@map("travel_insurance_policies")
+}
+
+model TourIncident {
+  id                    String           @id @default(cuid())
+  tenantId              String
+  packageId             String?
+  departureId           String?
+  bookingId             String?
+  severity              IncidentSeverity @default(LOW)
+  status                IncidentStatus   @default(OPEN)
+  title                 String
+  description           String
+  occurredAt            DateTime
+  reportedByEmployeeRef String?
+  assignedEmployeeRef   String?
+  resolution            String?
+  resolvedAt            DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  tourPackage TourPackage?   @relation(fields: [packageId], references: [id])
+  departure   TourDeparture? @relation(fields: [departureId], references: [id])
+  booking     Booking?       @relation(fields: [bookingId], references: [id])
+
+  @@index([tenantId, packageId])
+  @@index([tenantId, departureId])
+  @@index([tenantId, bookingId])
+  @@index([tenantId, severity, status])
+  @@map("travel_incidents")
+}
+
+model TourProfitSnapshot {
+  id                   String        @id @default(cuid())
+  tenantId             String
+  packageId            String?
+  departureId          String?
+  bookingId            String?
+  snapshotDate         DateTime      @default(now())
+  currency             String        @default("VND")
+  revenueAmount        Decimal       @default(0) @db.Decimal(18, 4)
+  directCostAmount     Decimal       @default(0) @db.Decimal(18, 4)
+  commissionAmount     Decimal       @default(0) @db.Decimal(18, 4)
+  taxAmount            Decimal       @default(0) @db.Decimal(18, 4)
+  grossProfitAmount    Decimal       @default(0) @db.Decimal(18, 4)
+  grossMarginPercent   Decimal       @default(0) @db.Decimal(10, 4)
+  accountingReportRef  String?
+  createdByEmployeeRef String?
+  createdAt            DateTime      @default(now())
+
+  tourPackage TourPackage?   @relation(fields: [packageId], references: [id])
+  departure   TourDeparture? @relation(fields: [departureId], references: [id])
+  booking     Booking?       @relation(fields: [bookingId], references: [id])
+
+  @@index([tenantId, packageId])
+  @@index([tenantId, departureId])
+  @@index([tenantId, bookingId])
+  @@index([tenantId, snapshotDate])
+  @@map("travel_profit_snapshots")
+}
+
+model VietErpEntityMap {
+  id               String                @id @default(cuid())
+  tenantId         String
+  sourceEntityType String
+  sourceEntityId   String
+  targetModule     VietErpModule
+  targetEntityType String
+  targetEntityId   String
+  direction        IntegrationDirection  @default(BIDIRECTIONAL)
+  syncStatus       IntegrationSyncStatus @default(PENDING)
+  syncVersion      Int                   @default(1)
+  lastSyncedAt     DateTime?
+  externalRef      String?
+  metadata         Json?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@unique([tenantId, sourceEntityType, sourceEntityId, targetModule, targetEntityType, targetEntityId])
+  @@index([tenantId, sourceEntityType, sourceEntityId])
+  @@index([tenantId, targetModule, targetEntityType, targetEntityId])
+  @@index([tenantId, syncStatus])
+  @@map("travel_vieterp_entity_maps")
+}

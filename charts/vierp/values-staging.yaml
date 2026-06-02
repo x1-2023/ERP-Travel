@@ -1,0 +1,153 @@
+global:
+  domain: staging.vierp.example.com
+  imageTag: staging
+
+apps:
+  hrm:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+
+  hrm_ai:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  hrm_unified:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+
+  mrp:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 75m
+        memory: 256Mi
+      limits:
+        cpu: 250m
+        memory: 512Mi
+
+  accounting:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 75m
+        memory: 256Mi
+      limits:
+        cpu: 250m
+        memory: 512Mi
+
+  ecommerce:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  otb:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+
+  tpm_api:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 75m
+        memory: 256Mi
+      limits:
+        cpu: 250m
+        memory: 512Mi
+
+  docs:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+
+  crm:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  pm:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  excelaI:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 150m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+
+  tpm_web:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+postgresql:
+  primary:
+    persistence:
+      size: 5Gi
+
+redis:
+  master:
+    persistence:
+      size: 1Gi
+
+nats:
+  persistence:
+    size: 2Gi
+
+ingress:
+  tls:
+    enabled: true
+    issuer: letsencrypt-staging

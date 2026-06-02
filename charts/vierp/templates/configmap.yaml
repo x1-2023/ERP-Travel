@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "vierp.fullname" . }}-config
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "vierp.labels" . | nindent 4 }}
+data:
+  # Database Configuration
+  DATABASE_HOST: "{{ include "vierp.fullname" . }}-postgresql"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: {{ .Values.postgresql.auth.database | quote }}
+  DATABASE_USER: {{ .Values.postgresql.auth.username | quote }}
+  DATABASE_URL: "postgresql://{{ .Values.postgresql.auth.username }}:{{ .Values.postgresql.auth.password }}@{{ include "vierp.fullname" . }}-postgresql:5432/{{ .Values.postgresql.auth.database }}"
+
+  # Redis Configuration
+  REDIS_HOST: "{{ include "vierp.fullname" . }}-redis-master"
+  REDIS_PORT: "6379"
+  REDIS_URL: "redis://{{ include "vierp.fullname" . }}-redis-master:6379/0"
+  REDIS_PASSWORD: ""
+
+  # NATS Configuration
+  NATS_URL: "nats://{{ include "vierp.fullname" . }}-nats:4222"
+  NATS_JETSTREAM_ENABLED: "true"
+
+  # Application Configuration
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
+
+  # Domain Configuration
+  DOMAIN: {{ .Values.global.domain | quote }}
+  API_BASE_URL: "https://{{ .Values.global.domain }}"
+
+  # Service URLs
+  {{- range $appKey, $appConfig := .Values.apps }}
+  {{- if $appConfig.enabled }}
+  {{ upper (include "vierp.appName" $appKey) }}_URL: "http://{{ include "vierp.appFullname" (dict "root" $ "appKey" $appKey) }}:{{ $appConfig.port }}"
+  {{ upper (include "vierp.appName" $appKey) }}_HOST: "{{ include "vierp.appFullname" (dict "root" $ "appKey" $appKey) }}"
+  {{ upper (include "vierp.appName" $appKey) }}_PORT: "{{ $appConfig.port }}"
+  {{- end }}
+  {{- end }}
+
+  # Keycloak Configuration
+  {{- if .Values.keycloak.enabled }}
+  KEYCLOAK_URL: "http://{{ include "vierp.fullname" . }}-keycloak:8080"
+  KEYCLOAK_REALM: "vierp"
+  KEYCLOAK_CLIENT_ID: "vierp-client"
+  {{- end }}
+
+  # Kong Configuration
+  {{- if .Values.kong.enabled }}
+  KONG_ADMIN_URL: "http://{{ include "vierp.fullname" . }}-kong:8001"
+  KONG_PROXY_URL: "http://{{ include "vierp.fullname" . }}-kong:8000"
+  {{- end }}
+
+  # Health Check Configuration
+  HEALTH_CHECK_ENABLED: "true"
+  HEALTH_CHECK_PATH: "/api/health"
+
+  # Common Application Settings
+  CORS_ORIGIN: "https://{{ .Values.global.domain }}"
+  SESSION_TIMEOUT: "3600"
+  TOKEN_EXPIRY: "86400"

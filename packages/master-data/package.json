@@ -1,0 +1,32 @@
+{
+  "name": "@vierp/master-data",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ERP Master Data Service — Single source of truth for shared entities (Customers, Products, Employees, Suppliers)",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./services": "./src/services/index.ts",
+    "./handlers": "./src/handlers/index.ts",
+    "./api": "./src/api/index.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src/",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@vierp/shared": "*",
+    "@vierp/database": "*",
+    "@vierp/events": "*",
+    "@vierp/auth": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

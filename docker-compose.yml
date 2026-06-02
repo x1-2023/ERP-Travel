@@ -1,0 +1,96 @@
+# ============================================================
+# ERP Ecosystem - Development Infrastructure
+# Usage: docker compose up -d
+# ============================================================
+
+services:
+  # ==================== Database ====================
+  postgres:
+    image: postgres:16-alpine
+    container_name: vierp-postgres
+    environment:
+      POSTGRES_USER: erp
+      POSTGRES_PASSWORD: erp_dev_2026
+      POSTGRES_DB: erp_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==================== Cache ====================
+  redis:
+    image: redis:7-alpine
+    container_name: vierp-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==================== Event Bus ====================
+  nats:
+    image: nats:2-alpine
+    container_name: vierp-nats
+    ports:
+      - "4222:4222"   # Client
+      - "8222:8222"   # HTTP monitoring
+    command: ["--js", "--sd", "/data", "--http_port", "8222"]
+    volumes:
+      - nats_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==================== SSO (Phase 1 - TIP-002) ====================
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: vierp-keycloak
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/erp_dev
+      KC_DB_USERNAME: erp
+      KC_DB_PASSWORD: erp_dev_2026
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8080:8080"
+    command: start-dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ==================== API Gateway (Phase 1 - TIP-003) ====================
+  kong:
+    image: kong:3.6-ubuntu
+    container_name: vierp-kong
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
+      KONG_PROXY_LISTEN: 0.0.0.0:8000
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      KONG_LOG_LEVEL: info
+    ports:
+      - "8000:8000"   # Proxy
+      - "8001:8001"   # Admin API
+    volumes:
+      - ./infrastructure/kong/kong.yml:/etc/kong/kong.yml:ro
+    depends_on:
+      - keycloak
+
+volumes:
+  postgres_data:
+  redis_data:
+  nats_data:

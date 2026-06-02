@@ -1,0 +1,258 @@
+# ============================================================
+# ERP Deploy Pipeline
+# Build Docker images → Push to registry → Deploy to K8s
+# ============================================================
+
+name: Deploy Pipeline
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deploy environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      services:
+        description: 'Services to deploy (comma-separated, or "all")'
+        required: false
+        default: 'all'
+
+env:
+  REGISTRY: registry.erp.vn
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+
+jobs:
+  # ── Determine changes ──────────────────────────────────────
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.changes.outputs.services }}
+      deploy_env: ${{ steps.env.outputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine environment
+        id: env
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+          else
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Detect changed services
+        id: changes
+        run: |
+          if [[ "${{ inputs.services }}" != "" && "${{ inputs.services }}" != "all" ]]; then
+            echo "services=${{ inputs.services }}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+
+          SERVICES=""
+          declare -A SERVICE_PATHS=(
+            ["HRM"]="apps/HRM packages/shared packages/database packages/auth packages/events"
+            ["CRM"]="apps/CRM packages/shared packages/database packages/auth"
+            ["MRP"]="apps/MRP packages/shared packages/database packages/events"
+            ["Accounting"]="apps/Accounting packages/shared packages/database packages/events"
+            ["PM"]="apps/PM packages/shared packages/database"
+            ["Ecommerce"]="apps/Ecommerce packages/shared packages/database packages/events packages/master-data"
+          )
+
+          for SERVICE in "${!SERVICE_PATHS[@]}"; do
+            for PATH in ${SERVICE_PATHS[$SERVICE]}; do
+              if echo "$CHANGED_FILES" | grep -q "^$PATH/"; then
+                SERVICES="${SERVICES:+$SERVICES,}$SERVICE"
+                break
+              fi
+            done
+          done
+
+          if [[ -z "$SERVICES" || "${{ inputs.services }}" == "all" ]]; then
+            SERVICES="HRM,CRM,MRP,Accounting,PM,Ecommerce"
+          fi
+
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+
+  # ── Run Tests ──────────────────────────────────────────────
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: erp
+          POSTGRES_PASSWORD: erp_test
+          POSTGRES_DB: erp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://erp:erp_test@localhost:5432/erp_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - run: npx turbo lint typecheck test
+
+  # ── Build & Push Docker Images ─────────────────────────────
+  build-and-push:
+    name: Build ${{ matrix.service }}
+    needs: [detect-changes, test]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJson(format('["{0}"]', join(fromJson(format('["{0}"]', needs.detect-changes.outputs.services)), '","'))) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/erp/${{ matrix.service }}
+          tags: |
+            type=sha,prefix=
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: infrastructure/docker/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_NAME=${{ matrix.service }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── Deploy to Kubernetes ───────────────────────────────────
+  deploy:
+    name: Deploy to ${{ needs.detect-changes.outputs.deploy_env }}
+    needs: [detect-changes, build-and-push]
+    runs-on: ubuntu-latest
+    environment: ${{ needs.detect-changes.outputs.deploy_env }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+
+      - name: Deploy services
+        run: |
+          ENV="${{ needs.detect-changes.outputs.deploy_env }}"
+          SERVICES="${{ needs.detect-changes.outputs.services }}"
+          SHA="${{ github.sha }}"
+          SHORT_SHA="${SHA:0:7}"
+
+          IFS=',' read -ra SERVICE_ARRAY <<< "$SERVICES"
+          for SERVICE in "${SERVICE_ARRAY[@]}"; do
+            SERVICE_LOWER=$(echo "$SERVICE" | tr '[:upper:]' '[:lower:]')
+            echo "Deploying $SERVICE to $ENV..."
+
+            kubectl set image deployment/$SERVICE_LOWER \
+              $SERVICE_LOWER=${{ env.REGISTRY }}/erp/$SERVICE:sha-$SHORT_SHA \
+              -n vierp-system \
+              --record
+
+            kubectl rollout status deployment/$SERVICE_LOWER \
+              -n vierp-system \
+              --timeout=300s
+          done
+
+      - name: Verify deployment
+        run: |
+          echo "=== Pod Status ==="
+          kubectl get pods -n vierp-system -o wide
+          echo ""
+          echo "=== Service Endpoints ==="
+          kubectl get svc -n vierp-system
+          echo ""
+          echo "=== Recent Events ==="
+          kubectl get events -n vierp-system --sort-by=.lastTimestamp | tail -20
+
+      - name: Run smoke tests
+        run: |
+          ENV="${{ needs.detect-changes.outputs.deploy_env }}"
+          BASE_URL="https://api-${ENV}.erp.vn"
+
+          echo "Running smoke tests against $BASE_URL..."
+          for ENDPOINT in "/api/health" "/api/v1/hrm/health" "/api/v1/crm/health"; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${BASE_URL}${ENDPOINT}" || echo "000")
+            if [[ "$STATUS" == "200" ]]; then
+              echo "✅ ${ENDPOINT} — OK"
+            else
+              echo "❌ ${ENDPOINT} — HTTP $STATUS"
+            fi
+          done
+
+  # ── Notify ─────────────────────────────────────────────────
+  notify:
+    name: Notify
+    needs: [detect-changes, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Send notification
+        run: |
+          ENV="${{ needs.detect-changes.outputs.deploy_env }}"
+          STATUS="${{ needs.deploy.result }}"
+          SERVICES="${{ needs.detect-changes.outputs.services }}"
+
+          if [[ "$STATUS" == "success" ]]; then
+            EMOJI="✅"
+            MSG="Deployed to $ENV successfully"
+          else
+            EMOJI="❌"
+            MSG="Deploy to $ENV failed"
+          fi
+
+          echo "$EMOJI $MSG"
+          echo "Services: $SERVICES"
+          echo "Commit: ${{ github.sha }}"
+          echo "Actor: ${{ github.actor }}"
+
+          # In production: send to Slack/Telegram/Zalo
+          # curl -X POST "${{ secrets.SLACK_WEBHOOK }}" \
+          #   -H 'Content-Type: application/json' \
+          #   -d "{\"text\": \"$EMOJI $MSG\nServices: $SERVICES\nCommit: ${{ github.sha }}\"}"

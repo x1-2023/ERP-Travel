@@ -1,0 +1,12 @@
+# =============================================================================
+# VietERP MRP - KUBERNETES NAMESPACE
+# =============================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vierp-mrp
+  labels:
+    app: vierp-mrp
+    env: production
+    monitoring: enabled

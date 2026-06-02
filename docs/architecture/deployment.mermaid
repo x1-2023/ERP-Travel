@@ -1,0 +1,144 @@
+graph TB
+    subgraph "Cloud Provider (AWS/GCP/Azure)"
+        subgraph "Kubernetes Cluster (EKS/GKE/AKS)"
+
+            subgraph "Ingress Layer"
+                INGRESS["Ingress Controller<br/>TLS Termination<br/>Route to Kong"]
+            end
+
+            subgraph "API Gateway"
+                KONG["Kong Service<br/>Replicas: 3<br/>LoadBalancer"]
+                KC["Keycloak<br/>StatefulSet<br/>Replicas: 3"]
+            end
+
+            subgraph "Microservices Namespace"
+                CRM["CRM Pod<br/>Deployment<br/>Replicas: 2-5<br/>HPA: CPU 70%"]
+                ACC["Accounting Pod<br/>Deployment<br/>Replicas: 2-5<br/>HPA: CPU 70%"]
+                INV["Inventory Pod<br/>Deployment<br/>Replicas: 2-5<br/>HPA: CPU 70%"]
+                HRM["HRM Pod<br/>Deployment<br/>Replicas: 2-5<br/>HPA: CPU 70%"]
+                ECOM["Ecommerce Pod<br/>Deployment<br/>Replicas: 2-5<br/>HPA: CPU 70%"]
+                MRP["MRP Pod<br/>Deployment<br/>Replicas: 2-5"]
+                PAY["Payroll Pod<br/>Deployment<br/>Replicas: 2-3"]
+            end
+
+            subgraph "Data Layer"
+                PG["PostgreSQL<br/>StatefulSet<br/>Primary + 2 Replicas<br/>PersistentVolume: 500Gi"]
+                REDIS["Redis<br/>StatefulSet<br/>Primary + Replica<br/>PersistentVolume: 100Gi"]
+                NATS["NATS JetStream<br/>StatefulSet<br/>Replicas: 3<br/>PersistentVolume: 200Gi"]
+            end
+
+            subgraph "Config & Secrets"
+                CM["ConfigMaps<br/>App Config<br/>per Environment"]
+                SEC["Secrets<br/>DB Credentials<br/>JWT Keys<br/>API Keys"]
+            end
+
+            subgraph "Storage & Logging"
+                PV["PersistentVolumes<br/>Database Backups<br/>Document Storage"]
+                LOG["Logging<br/>Promtail/Fluentd<br/>→ Loki/ELK"]
+                MON["Monitoring<br/>Prometheus<br/>Grafana Dashboards"]
+            end
+        end
+
+        subgraph "External Services"
+            S3["Object Storage<br/>S3/GCS/Blob<br/>Documents, Images"]
+            LB["Load Balancer<br/>External IP<br/>DNS CNAME"]
+        end
+    end
+
+    subgraph "Infrastructure as Code"
+        TF["Terraform Modules<br/>VPC, Security Groups<br/>K8s Cluster, Node Pools"]
+        HELM["Helm Charts<br/>Service Deployments<br/>values-dev.yaml<br/>values-prod.yaml"]
+    end
+
+    INGRESS -->|Route| KONG
+    KONG -->|Service Discovery| CRM
+    KONG -->|Service Discovery| ACC
+    KONG -->|Service Discovery| INV
+    KONG -->|Service Discovery| HRM
+    KONG -->|Service Discovery| ECOM
+    KONG -->|Service Discovery| MRP
+    KONG -->|Service Discovery| PAY
+    KONG -->|Service Discovery| KC
+
+    CRM -->|ConnectionPool| PG
+    ACC -->|ConnectionPool| PG
+    INV -->|ConnectionPool| PG
+    HRM -->|ConnectionPool| PG
+    ECOM -->|ConnectionPool| PG
+    MRP -->|ConnectionPool| PG
+    PAY -->|ConnectionPool| PG
+
+    CRM -->|get/set| REDIS
+    ACC -->|get/set| REDIS
+    INV -->|get/set| REDIS
+
+    CRM -->|publish| NATS
+    ACC -->|publish| NATS
+    INV -->|publish| NATS
+    HRM -->|publish| NATS
+    ECOM -->|publish| NATS
+    MRP -->|publish| NATS
+    PAY -->|publish| NATS
+
+    CRM -->|ConfigMap| CM
+    ACC -->|ConfigMap| CM
+    INV -->|ConfigMap| CM
+    HRM -->|ConfigMap| CM
+    ECOM -->|ConfigMap| CM
+    MRP -->|ConfigMap| CM
+    PAY -->|ConfigMap| CM
+
+    CRM -->|Secret| SEC
+    ACC -->|Secret| SEC
+    INV -->|Secret| SEC
+    HRM -->|Secret| SEC
+    ECOM -->|Secret| SEC
+    MRP -->|Secret| SEC
+    PAY -->|Secret| SEC
+    KC -->|Secret| SEC
+
+    PG -->|Backup| PV
+    NATS -->|Data Dir| PV
+
+    CRM -->|Logs| LOG
+    ACC -->|Logs| LOG
+    INV -->|Logs| LOG
+    PAY -->|Logs| LOG
+
+    MON -->|Scrapes| CRM
+    MON -->|Scrapes| ACC
+    MON -->|Scrapes| PG
+    MON -->|Scrapes| NATS
+    MON -->|Scrapes| REDIS
+
+    ECOM -->|Upload| S3
+    ACC -->|Upload| S3
+
+    LB -->|DNS| INGRESS
+
+    TF -->|Provisions| INF["Cluster Infrastructure"]
+    HELM -->|Deploys| CRM
+    HELM -->|Deploys| ACC
+    HELM -->|Deploys| INV
+    HELM -->|Deploys| HRM
+    HELM -->|Deploys| ECOM
+    HELM -->|Deploys| MRP
+    HELM -->|Deploys| PAY
+    HELM -->|Deploys| KONG
+    HELM -->|Deploys| KC
+
+    classDef ingress fill:#FFF3E0,stroke:#F57C00,stroke-width:2px
+    classDef gateway fill:#FFE0B2,stroke:#F57C00
+    classDef service fill:#E8F5E9,stroke:#388E3C
+    classDef data fill:#FCE4EC,stroke:#C2185B
+    classDef config fill:#F3E5F5,stroke:#7B1FA2
+    classDef storage fill:#E0F2F1,stroke:#00897B
+    classDef infra fill:#E3F2FD,stroke:#1976D2
+
+    class INGRESS ingress
+    class KONG,KC gateway
+    class CRM,ACC,INV,HRM,ECOM,MRP,PAY service
+    class PG,REDIS,NATS data
+    class CM,SEC config
+    class PV,LOG,MON,S3 storage
+    class TF,HELM infra

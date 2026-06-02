@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ERP Ecosystem — Quy mô & Tính năng</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #0a0e1a;
+    color: #e2e8f0;
+    overflow-x: hidden;
+  }
+
+  /* Hero Header */
+  .hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    padding: 60px 40px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 1px solid rgba(59,130,246,0.3);
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle at 30% 50%, rgba(59,130,246,0.08) 0%, transparent 50%),
+                radial-gradient(circle at 70% 50%, rgba(168,85,247,0.06) 0%, transparent 50%);
+    animation: pulse 8s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+  .hero h1 {
+    font-size: 48px; font-weight: 900;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    position: relative; letter-spacing: -1px;
+  }
+  .hero p { color: #94a3b8; font-size: 18px; margin-top: 12px; position: relative; }
+
+  /* KPI Strip */
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 16px;
+    padding: 32px 40px;
+    background: #0f172a;
+  }
+  .kpi-card {
+    background: linear-gradient(145deg, #1e293b, #0f172a);
+    border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 16px;
+    padding: 24px 16px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+  .kpi-card:hover { border-color: rgba(59,130,246,0.5); transform: translateY(-2px); }
+  .kpi-value {
+    font-size: 36px; font-weight: 800;
+    background: linear-gradient(135deg, #60a5fa, #34d399);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .kpi-label { color: #94a3b8; font-size: 12px; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* Section */
+  .section {
+    padding: 40px;
+    max-width: 1440px;
+    margin: 0 auto;
+  }
+  .section-title {
+    font-size: 28px; font-weight: 700; color: #f1f5f9;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .section-title .badge {
+    font-size: 11px; padding: 4px 10px;
+    background: rgba(59,130,246,0.2); color: #60a5fa;
+    border-radius: 999px; font-weight: 600;
+  }
+  .section-sub { color: #64748b; font-size: 14px; margin-bottom: 28px; }
+
+  /* Grid layouts */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+
+  /* Card */
+  .card {
+    background: linear-gradient(145deg, #1e293b, #141c2e);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card h3 { font-size: 16px; font-weight: 600; color: #e2e8f0; margin-bottom: 16px; }
+
+  /* Chart container */
+  .chart-container { position: relative; width: 100%; }
+  .chart-container canvas { width: 100% !important; }
+
+  /* Treemap */
+  .treemap {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-auto-rows: minmax(60px, auto);
+    gap: 4px;
+    margin-bottom: 32px;
+  }
+  .tree-cell {
+    border-radius: 10px;
+    padding: 12px;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+    cursor: default;
+  }
+  .tree-cell:hover { transform: scale(1.02); z-index: 2; }
+  .tree-cell .name { font-weight: 700; font-size: 14px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+  .tree-cell .loc { font-size: 11px; color: rgba(255,255,255,0.8); margin-top: 2px; }
+  .tree-cell .files { font-size: 10px; color: rgba(255,255,255,0.6); }
+
+  /* Heatmap table */
+  .heatmap { width: 100%; border-collapse: separate; border-spacing: 3px; }
+  .heatmap th {
+    font-size: 11px; font-weight: 600; color: #94a3b8;
+    padding: 8px 6px; text-align: center;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .heatmap th:first-child { text-align: left; }
+  .heatmap td {
+    padding: 8px 6px; text-align: center;
+    border-radius: 6px; font-weight: 700; font-size: 14px;
+    transition: all 0.2s;
+  }
+  .heatmap td:first-child { text-align: left; font-weight: 500; color: #e2e8f0; font-size: 13px; }
+  .heatmap td:hover { transform: scale(1.08); }
+
+  /* Module cards */
+  .module-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .mod-card {
+    background: rgba(30,41,59,0.8);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 16px;
+    transition: all 0.3s;
+  }
+  .mod-card:hover { border-color: rgba(59,130,246,0.4); }
+  .mod-card .mod-icon { font-size: 28px; margin-bottom: 8px; }
+  .mod-card .mod-name { font-size: 13px; font-weight: 700; color: #f1f5f9; }
+  .mod-card .mod-desc { font-size: 11px; color: #64748b; margin-top: 4px; line-height: 1.4; }
+  .mod-card .mod-stat { font-size: 11px; color: #60a5fa; margin-top: 8px; font-weight: 600; }
+
+  /* Tech stack pills */
+  .tech-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .tech-label { font-size: 12px; font-weight: 600; color: #94a3b8; min-width: 90px; line-height: 28px; }
+  .pill {
+    font-size: 11px; padding: 4px 12px;
+    border-radius: 999px; font-weight: 500;
+    background: rgba(59,130,246,0.15); color: #60a5fa;
+    border: 1px solid rgba(59,130,246,0.2);
+  }
+  .pill.green { background: rgba(52,211,153,0.15); color: #34d399; border-color: rgba(52,211,153,0.2); }
+  .pill.purple { background: rgba(168,85,247,0.15); color: #a78bfa; border-color: rgba(168,85,247,0.2); }
+  .pill.orange { background: rgba(251,146,60,0.15); color: #fb923c; border-color: rgba(251,146,60,0.2); }
+  .pill.pink { background: rgba(244,114,182,0.15); color: #f472b6; border-color: rgba(244,114,182,0.2); }
+
+  /* Footer */
+  .footer {
+    text-align: center; padding: 32px;
+    color: #475569; font-size: 13px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ HERO ═══ -->
+<div class="hero">
+  <h1>ERP ECOSYSTEM</h1>
+  <p>Toàn cảnh quy mô tính năng — Dữ liệu đo trực tiếp từ codebase 27/03/2026</p>
+</div>
+
+<!-- ═══ KPI STRIP ═══ -->
+<div class="kpi-strip">
+  <div class="kpi-card"><div class="kpi-value">1.51M</div><div class="kpi-label">Lines of Code</div></div>
+  <div class="kpi-card"><div class="kpi-value">7,548</div><div class="kpi-label">Source Files</div></div>
+  <div class="kpi-card"><div class="kpi-value">953</div><div class="kpi-label">Prisma Models</div></div>
+  <div class="kpi-card"><div class="kpi-value">1,257</div><div class="kpi-label">API Routes</div></div>
+  <div class="kpi-card"><div class="kpi-value">14</div><div class="kpi-label">Applications</div></div>
+  <div class="kpi-card"><div class="kpi-value">19</div><div class="kpi-label">Packages</div></div>
+</div>
+
+<!-- ═══ TREEMAP: LOC Distribution ═══ -->
+<div class="section">
+  <div class="section-title">Phân bổ Lines of Code theo Module <span class="badge">TREEMAP</span></div>
+  <div class="section-sub">Kích thước ô tỷ lệ với số LOC thực tế. Tổng cộng 1,511,559 LOC.</div>
+
+  <div class="treemap">
+    <!-- MRP: 526K → largest, 6 cols × 3 rows -->
+    <div class="tree-cell" style="grid-column: span 5; grid-row: span 3; background: linear-gradient(135deg, #2563eb, #1d4ed8);">
+      <div class="name">MRP</div><div class="loc">526,503 LOC</div><div class="files">2,417 files · 174 models</div>
+    </div>
+    <!-- HRM-unified: 217K → 3 cols × 3 rows -->
+    <div class="tree-cell" style="grid-column: span 3; grid-row: span 3; background: linear-gradient(135deg, #7c3aed, #6d28d9);">
+      <div class="name">HRM-unified</div><div class="loc">216,650 LOC</div><div class="files">1,238 files · 182 models</div>
+    </div>
+    <!-- HRM-AI: 216K → 4 cols × 2 rows -->
+    <div class="tree-cell" style="grid-column: span 4; grid-row: span 2; background: linear-gradient(135deg, #a855f7, #7c3aed);">
+      <div class="name">HRM-AI</div><div class="loc">216,394 LOC</div><div class="files">1,234 files · 176 models</div>
+    </div>
+    <!-- ExcelAI: 182K → 4 cols × 2 rows -->
+    <div class="tree-cell" style="grid-column: span 4; grid-row: span 2; background: linear-gradient(135deg, #059669, #047857);">
+      <div class="name">ExcelAI</div><div class="loc">182,132 LOC</div><div class="files">636 files · Spreadsheet Engine</div>
+    </div>
+    <!-- TPM-web: 132K → 4 cols × 2 rows -->
+    <div class="tree-cell" style="grid-column: span 4; grid-row: span 2; background: linear-gradient(135deg, #d97706, #b45309);">
+      <div class="name">TPM-web</div><div class="loc">131,597 LOC</div><div class="files">509 files · Trade Promotion</div>
+    </div>
+    <!-- CRM: 51K → 3 cols × 1 row -->
+    <div class="tree-cell" style="grid-column: span 3; grid-row: span 2; background: linear-gradient(135deg, #0891b2, #0e7490);">
+      <div class="name">CRM</div><div class="loc">51,402 LOC</div><div class="files">417 files · 48 models</div>
+    </div>
+    <!-- OTB: 51K → 3 cols × 1 row -->
+    <div class="tree-cell" style="grid-column: span 3; grid-row: span 2; background: linear-gradient(135deg, #dc2626, #b91c1c);">
+      <div class="name">OTB</div><div class="loc">50,947 LOC</div><div class="files">247 files · 33 models</div>
+    </div>
+    <!-- HRM: 43K → 2 cols × 1 row -->
+    <div class="tree-cell" style="grid-column: span 2; grid-row: span 2; background: linear-gradient(135deg, #9333ea, #7e22ce);">
+      <div class="name">HRM</div><div class="loc">42,573 LOC</div><div class="files">352 files · 37 models</div>
+    </div>
+    <!-- TPM-api-nestjs: 32K -->
+    <div class="tree-cell" style="grid-column: span 2; grid-row: span 1; background: linear-gradient(135deg, #ea580c, #c2410c);">
+      <div class="name">TPM-NestJS</div><div class="loc">32,358 LOC</div>
+    </div>
+    <!-- TPM-api: 28K -->
+    <div class="tree-cell" style="grid-column: span 2; grid-row: span 1; background: linear-gradient(135deg, #ca8a04, #a16207);">
+      <div class="name">TPM-API</div><div class="loc">28,217 LOC</div>
+    </div>
+    <!-- Small ones: PM, Accounting, Ecommerce, Docs -->
+    <div class="tree-cell" style="grid-column: span 2; grid-row: span 1; background: linear-gradient(135deg, #475569, #334155);">
+      <div class="name" style="font-size:11px">PM · Accounting · E-com · Docs</div><div class="loc" style="font-size:10px">8,649 LOC combined</div>
+    </div>
+    <!-- Packages total -->
+    <div class="tree-cell" style="grid-column: span 4; grid-row: span 1; background: linear-gradient(135deg, #1e40af, #1e3a8a); border: 2px dashed rgba(96,165,250,0.4);">
+      <div class="name">19 Shared Packages</div><div class="loc">11,171 LOC · 57 files</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CHARTS ROW 1 ═══ -->
+<div class="section">
+  <div class="grid-2">
+    <!-- Prisma Models by App -->
+    <div class="card">
+      <h3>📊 Prisma Models theo App</h3>
+      <div class="chart-container"><canvas id="modelsChart"></canvas></div>
+    </div>
+    <!-- API Routes doughnut -->
+    <div class="card">
+      <h3>🔗 1,257 API Routes phân bổ</h3>
+      <div class="chart-container"><canvas id="routesChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ COMPETITIVE HEATMAP ═══ -->
+<div class="section">
+  <div class="section-title">Ma trận Cạnh tranh <span class="badge">HEATMAP</span></div>
+  <div class="section-sub">Chấm điểm 0–10 so với đối thủ chính trên thị trường Việt Nam</div>
+
+  <div class="card" style="overflow-x:auto;">
+    <table class="heatmap" id="heatmapTable"></table>
+  </div>
+</div>
+
+<!-- ═══ CHARTS ROW 2 ═══ -->
+<div class="section">
+  <div class="grid-2">
+    <!-- Radar chart -->
+    <div class="card">
+      <h3>🎯 Radar: ERP Ecosystem vs Top 3 Đối thủ</h3>
+      <div class="chart-container"><canvas id="radarChart"></canvas></div>
+    </div>
+    <!-- LOC by category bar -->
+    <div class="card">
+      <h3>📈 LOC theo danh mục chức năng</h3>
+      <div class="chart-container"><canvas id="categoryChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 14 MODULE CARDS ═══ -->
+<div class="section">
+  <div class="section-title">14 Applications <span class="badge">MODULES</span></div>
+  <div class="section-sub">Mỗi module là một Next.js/React app độc lập trong monorepo</div>
+
+  <div class="module-grid" id="moduleGrid"></div>
+</div>
+
+<!-- ═══ 19 PACKAGES ═══ -->
+<div class="section">
+  <div class="section-title">19 Shared Packages <span class="badge">INFRASTRUCTURE</span></div>
+  <div class="section-sub">Thư viện dùng chung, tổng 11,171 LOC</div>
+
+  <div class="card">
+    <div class="chart-container" style="height:320px"><canvas id="packagesChart"></canvas></div>
+  </div>
+</div>
+
+<!-- ═══ TECH STACK ═══ -->
+<div class="section">
+  <div class="section-title">Tech Stack <span class="badge">ARCHITECTURE</span></div>
+  <div class="card" id="techStack"></div>
+</div>
+
+<!-- ═══ FOOTER ═══ -->
+<div class="footer">
+  ERP Ecosystem · 1,511,559 LOC · 7,548 files · 953 models · 1,257 API routes · 14 apps · 19 packages<br>
+  Dữ liệu đo trực tiếp từ codebase · 27/03/2026
+</div>
+
+<script>
+// ─── Color helpers ──────────────────────────────────────────
+function heatColor(score) {
+  if (score >= 9) return { bg: '#166534', color: '#fff' };
+  if (score >= 7) return { bg: '#15803d', color: '#fff' };
+  if (score >= 5) return { bg: '#a16207', color: '#fff' };
+  if (score >= 3) return { bg: '#b91c1c', color: '#fff' };
+  return { bg: '#7f1d1d', color: '#fca5a5' };
+}
+
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+Chart.defaults.font.family = 'Inter';
+
+// ─── 1. Models Chart ────────────────────────────────────────
+new Chart(document.getElementById('modelsChart'), {
+  type: 'bar',
+  data: {
+    labels: ['HRM-unified','HRM-AI','MRP','TPM-api','TPM-nestjs','CRM','HRM','OTB','Accounting','Ecommerce','Database'],
+    datasets: [{
+      data: [204,198,174,108,101,48,37,33,21,18,11],
+      backgroundColor: ['#7c3aed','#a855f7','#2563eb','#ea580c','#ca8a04','#0891b2','#9333ea','#dc2626','#059669','#d97706','#475569'],
+      borderRadius: 6, borderSkipped: false,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: 'rgba(255,255,255,0.04)' } },
+      y: { grid: { display: false } }
+    }
+  }
+});
+
+// ─── 2. Routes Doughnut ─────────────────────────────────────
+new Chart(document.getElementById('routesChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['MRP (291)','CRM (77)','HRM-unified (200+)','HRM-AI (200+)','TPM (150+)','OTB (80+)','Accounting (50+)','Others'],
+    datasets: [{
+      data: [291, 77, 210, 205, 155, 85, 54, 180],
+      backgroundColor: ['#2563eb','#0891b2','#7c3aed','#a855f7','#ea580c','#dc2626','#059669','#475569'],
+      borderWidth: 0,
+    }]
+  },
+  options: {
+    responsive: true,
+    cutout: '55%',
+    plugins: {
+      legend: { position: 'right', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } }
+    }
+  }
+});
+
+// ─── 3. Competitive Heatmap ─────────────────────────────────
+const heatData = {
+  headers: ['Tính năng', 'ERP Eco', 'MISA', 'Bravo', 'SAP B1', 'Odoo', '1C', 'KiotViet', 'Sapo'],
+  rows: [
+    ['Kế toán VAS', 8, 10, 7, 6, 7, 7, 2, 2],
+    ['HRM & Payroll', 9, 6, 5, 5, 7, 6, 3, 2],
+    ['CRM', 9, 5, 3, 6, 7, 4, 5, 4],
+    ['MRP/Sản xuất', 8, 4, 9, 7, 7, 6, 0, 0],
+    ['E-Invoice (NĐ123)', 8, 10, 6, 4, 6, 5, 4, 3],
+    ['AI Copilot', 9, 6, 1, 3, 3, 2, 2, 4],
+    ['E-commerce VN', 9, 1, 0, 2, 7, 2, 7, 9],
+    ['Thanh toán VN', 9, 3, 1, 2, 4, 1, 8, 8],
+    ['Developer SDK', 9, 2, 1, 5, 8, 4, 2, 3],
+    ['Multi-tenant SaaS', 9, 7, 3, 4, 7, 5, 7, 7],
+    ['Trade Promotion', 8, 1, 1, 2, 2, 1, 0, 1],
+    ['ExcelAI Engine', 8, 5, 0, 0, 2, 1, 0, 0],
+    ['Microservices', 9, 6, 5, 4, 6, 5, 5, 5],
+    ['Event-Driven', 9, 4, 3, 4, 5, 4, 3, 3],
+    ['Security RBAC', 8, 7, 6, 8, 7, 6, 6, 5],
+    ['i18n Vi/En', 8, 8, 7, 8, 9, 7, 8, 8],
+  ]
+};
+
+const table = document.getElementById('heatmapTable');
+let html = '<thead><tr>';
+heatData.headers.forEach((h, i) => { html += `<th${i===0?' style="min-width:160px"':''}>${h}</th>`; });
+html += '</tr></thead><tbody>';
+heatData.rows.forEach(row => {
+  html += '<tr>';
+  row.forEach((cell, i) => {
+    if (i === 0) { html += `<td>${cell}</td>`; }
+    else {
+      const c = heatColor(cell);
+      const bold = i === 1 ? 'border:2px solid rgba(96,165,250,0.5);' : '';
+      html += `<td style="background:${c.bg};color:${c.color};${bold}">${cell}</td>`;
+    }
+  });
+  html += '</tr>';
+});
+// Average row
+const avgs = heatData.headers.slice(1).map((_, ci) => {
+  const sum = heatData.rows.reduce((s, r) => s + r[ci + 1], 0);
+  return (sum / heatData.rows.length).toFixed(1);
+});
+html += '<tr style="border-top:2px solid rgba(255,255,255,0.1)"><td style="font-weight:700;color:#60a5fa">TRUNG BÌNH</td>';
+avgs.forEach((avg, i) => {
+  const c = heatColor(parseFloat(avg));
+  const bold = i === 0 ? 'border:2px solid rgba(96,165,250,0.5);' : '';
+  html += `<td style="background:${c.bg};color:${c.color};font-size:16px;${bold}">${avg}</td>`;
+});
+html += '</tr></tbody>';
+table.innerHTML = html;
+
+// ─── 4. Radar Chart ─────────────────────────────────────────
+new Chart(document.getElementById('radarChart'), {
+  type: 'radar',
+  data: {
+    labels: ['Kế toán', 'HRM', 'CRM', 'MRP', 'E-commerce', 'AI', 'SDK/API', 'Security', 'i18n', 'SaaS'],
+    datasets: [
+      { label: 'ERP Ecosystem', data: [8,9,9,8,9,9,9,8,8,9], borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.15)', pointBackgroundColor: '#60a5fa', borderWidth: 2 },
+      { label: 'MISA', data: [10,6,5,4,1,6,2,7,8,7], borderColor: '#f472b6', backgroundColor: 'rgba(244,114,182,0.08)', pointBackgroundColor: '#f472b6', borderWidth: 2 },
+      { label: 'Odoo', data: [7,7,7,7,7,3,8,7,9,7], borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.08)', pointBackgroundColor: '#a78bfa', borderWidth: 2 },
+      { label: 'SAP B1', data: [6,5,6,7,2,3,5,8,8,4], borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,0.08)', pointBackgroundColor: '#fbbf24', borderWidth: 2 },
+    ]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      r: { min: 0, max: 10, ticks: { stepSize: 2, color: '#475569', backdropColor: 'transparent' }, grid: { color: 'rgba(255,255,255,0.06)' }, pointLabels: { font: { size: 11 }, color: '#94a3b8' } }
+    },
+    plugins: { legend: { labels: { boxWidth: 12, padding: 16 } } }
+  }
+});
+
+// ─── 5. Category Bar Chart ──────────────────────────────────
+new Chart(document.getElementById('categoryChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Manufacturing\n(MRP)', 'HR Management\n(HRM×3)', 'Spreadsheet\n(ExcelAI)', 'Trade Promotion\n(TPM×3)', 'Sales & CRM', 'Budget/OTB', 'Shared Infra\n(19 pkgs)', 'Accounting\n+ E-com + Docs'],
+    datasets: [{
+      data: [526503, 475617, 182132, 192172, 51402, 50947, 11171, 8649],
+      backgroundColor: ['#2563eb','#7c3aed','#059669','#ea580c','#0891b2','#dc2626','#1e40af','#475569'],
+      borderRadius: 8, borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ctx.raw.toLocaleString() + ' LOC' } }
+    },
+    scales: {
+      y: { ticks: { callback: v => (v/1000)+'K' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+    }
+  }
+});
+
+// ─── 6. Module Cards ────────────────────────────────────────
+const modules = [
+  { icon: '🏭', name: 'MRP', desc: 'BOM, ATP/CTP, Work Orders, QA, Capacity Planning, AI Scheduling', stat: '526K LOC · 174 models · 291 routes' },
+  { icon: '👥', name: 'HRM-unified', desc: 'Employee lifecycle, Payroll, KPI, Attendance, Recruitment, i18n', stat: '217K LOC · 182 models · 200+ routes' },
+  { icon: '🤖', name: 'HRM-AI', desc: 'HRM + Claude AI Copilot, AI-driven insights, smart reporting', stat: '216K LOC · 176 models · 200+ routes' },
+  { icon: '📊', name: 'ExcelAI', desc: '90+ formulas, charts, import/export, conditional formatting', stat: '182K LOC · 636 files · Spreadsheet engine' },
+  { icon: '📢', name: 'TPM-web', desc: 'Trade promotions, budget, claims, BI analytics, monitoring', stat: '132K LOC · 509 files · React SPA' },
+  { icon: '💼', name: 'CRM', desc: 'Pipeline, Deals, Marketing campaigns, Support tickets, Portal', stat: '51K LOC · 48 models · 77 routes' },
+  { icon: '💰', name: 'OTB', desc: 'Open-To-Buy budgets, SKU proposals, approval workflows', stat: '51K LOC · 33 models · 80+ routes' },
+  { icon: '👤', name: 'HRM', desc: 'Core HRM: employees, contracts, payroll, attendance', stat: '43K LOC · 37 models · 50+ routes' },
+  { icon: '⚙️', name: 'TPM-NestJS', desc: 'TPM backend NestJS: modules, guards, interceptors', stat: '32K LOC · 101 models · 296 files' },
+  { icon: '🔌', name: 'TPM-API', desc: 'TPM backend Express: REST endpoints, middleware', stat: '28K LOC · 108 models · 217 files' },
+  { icon: '🧾', name: 'Accounting', desc: 'VAS COA, Journal, AP/AR, E-Invoice, Tax, Bank Recon, IFRS', stat: '2.6K LOC · 21 models · 40+ enums' },
+  { icon: '🛒', name: 'Ecommerce', desc: 'Catalog, Cart, VNPay/MoMo/ZaloPay, GHN/GHTK shipping', stat: '1.9K LOC · 18 models · 12 enums' },
+  { icon: '📋', name: 'PM', desc: 'Project management (base template, expanding)', stat: '3.6K LOC · Vite + React' },
+  { icon: '📖', name: 'Docs', desc: 'API documentation portal, full-text search', stat: '517 LOC · 7 doc sections' },
+];
+const grid = document.getElementById('moduleGrid');
+modules.forEach(m => {
+  grid.innerHTML += `<div class="mod-card"><div class="mod-icon">${m.icon}</div><div class="mod-name">${m.name}</div><div class="mod-desc">${m.desc}</div><div class="mod-stat">${m.stat}</div></div>`;
+});
+
+// ─── 7. Packages Horizontal Bar ─────────────────────────────
+new Chart(document.getElementById('packagesChart'), {
+  type: 'bar',
+  data: {
+    labels: ['master-data','tpm-shared','events','saas','sdk','ai-copilot','security','api-middleware','cache','auth','shared','i18n','logger','health','notifications','errors','admin','feature-flags','database'],
+    datasets: [{
+      data: [1971,1396,1150,856,815,813,663,647,483,478,445,421,410,363,356,332,329,215,28],
+      backgroundColor: ctx => {
+        const colors = ['#2563eb','#ea580c','#7c3aed','#059669','#0891b2','#a855f7','#dc2626','#1e40af','#0d9488','#6366f1','#475569','#d97706','#1e3a8a','#059669','#f472b6','#ef4444','#6b21a8','#ca8a04','#374151'];
+        return colors[ctx.dataIndex % colors.length];
+      },
+      borderRadius: 4, borderSkipped: false,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ctx.raw + ' LOC' } }
+    },
+    scales: {
+      x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { callback: v => v + ' LOC' } },
+      y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+    }
+  }
+});
+
+// ─── 8. Tech Stack ──────────────────────────────────────────
+const tech = [
+  { label: 'Frontend', pills: [['Next.js 14/15',''],['React 18/19',''],['Vite',''],['TypeScript 5',''],['Tailwind CSS',''],['shadcn/ui',''],['Framer Motion','']] },
+  { label: 'Backend', pills: [['NestJS','green'],['Express.js','green'],['Next.js API','green'],['Prisma ORM','green']] },
+  { label: 'Database', pills: [['PostgreSQL 16','purple'],['Redis 7','purple'],['NATS JetStream','purple']] },
+  { label: 'Auth', pills: [['Keycloak SSO','orange'],['NextAuth 5','orange'],['JWT/RBAC','orange'],['Supabase Auth','orange']] },
+  { label: 'AI/ML', pills: [['Claude API','pink'],['Google Gemini','pink'],['OpenAI','pink']] },
+  { label: 'DevOps', pills: [['Docker','green'],['Kubernetes','green'],['GitHub Actions','green'],['Kong Gateway','green'],['Turborepo','green']] },
+  { label: 'Payments', pills: [['VNPay','orange'],['MoMo','orange'],['ZaloPay','orange'],['VietQR','orange'],['COD','orange']] },
+  { label: 'Shipping', pills: [['GHN',''],['GHTK',''],['Viettel Post',''],['J&T',''],['GrabExpress','']] },
+];
+const ts = document.getElementById('techStack');
+tech.forEach(t => {
+  let h = `<div class="tech-row"><span class="tech-label">${t.label}</span>`;
+  t.pills.forEach(p => { h += `<span class="pill ${p[1]}">${p[0]}</span>`; });
+  h += '</div>';
+  ts.innerHTML += h;
+});
+</script>
+</body>
+</html>

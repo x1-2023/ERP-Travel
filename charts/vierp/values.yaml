@@ -1,0 +1,311 @@
+global:
+  domain: vierp.example.com
+  imageRegistry: ghcr.io/nclamvn
+  imageTag: latest
+  imagePullPolicy: IfNotPresent
+
+apps:
+  hrm:
+    enabled: true
+    replicas: 1
+    port: 3001
+    name: HRM
+    image: hrm
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
+
+  hrm_ai:
+    enabled: true
+    replicas: 1
+    port: 3002
+    name: HRM-AI
+    image: hrm-ai
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 70
+
+  hrm_unified:
+    enabled: true
+    replicas: 1
+    port: 3003
+    name: HRM-unified
+    image: hrm-unified
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
+
+  mrp:
+    enabled: true
+    replicas: 1
+    port: 3005
+    name: MRP
+    image: mrp
+    resources:
+      requests:
+        cpu: 150m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
+
+  accounting:
+    enabled: true
+    replicas: 1
+    port: 3007
+    name: Accounting
+    image: accounting
+    resources:
+      requests:
+        cpu: 150m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
+
+  ecommerce:
+    enabled: true
+    replicas: 1
+    port: 3008
+    name: Ecommerce
+    image: ecommerce
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 70
+
+  otb:
+    enabled: true
+    replicas: 1
+    port: 3009
+    name: OTB
+    image: otb
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
+
+  tpm_api:
+    enabled: true
+    replicas: 1
+    port: 3010
+    name: TPM-API
+    image: tpm-api
+    resources:
+      requests:
+        cpu: 150m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
+
+  docs:
+    enabled: true
+    replicas: 1
+    port: 3011
+    name: Docs
+    image: docs
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 2
+      targetCPUUtilizationPercentage: 70
+
+  crm:
+    enabled: true
+    replicas: 1
+    port: 3018
+    name: CRM
+    image: crm
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 70
+
+  pm:
+    enabled: true
+    replicas: 1
+    port: 5173
+    name: PM
+    image: pm
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
+
+  excelaI:
+    enabled: true
+    replicas: 1
+    port: 5174
+    name: ExcelAI
+    image: excelaI
+    resources:
+      requests:
+        cpu: 300m
+        memory: 1Gi
+      limits:
+        cpu: 2000m
+        memory: 2Gi
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 70
+
+  tpm_web:
+    enabled: true
+    replicas: 1
+    port: 5180
+    name: TPM-Web
+    image: tpm-web
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
+
+postgresql:
+  enabled: true
+  auth:
+    database: vierp
+    username: vierp
+    password: changeme
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+  version: "16"
+
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+  master:
+    persistence:
+      enabled: true
+      size: 2Gi
+
+nats:
+  enabled: true
+  jetstream:
+    enabled: true
+  persistence:
+    enabled: true
+    size: 5Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  tls:
+    enabled: true
+    issuer: letsencrypt-prod
+
+keycloak:
+  enabled: true
+  auth:
+    adminUser: admin
+    adminPassword: changeme
+
+kong:
+  enabled: true
+  ingressController:
+    enabled: true
+
+healthCheck:
+  enabled: true
+  path: /api/health
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
