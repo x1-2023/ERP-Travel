@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   Bot,
@@ -10,111 +10,304 @@ import {
   Database,
   FileSpreadsheet,
   KanbanSquare,
+  LogOut,
   Plane,
-  Settings2,
   ShieldCheck,
+  UserPlus,
   Users,
   type LucideIcon,
 } from "lucide-react";
 import { TravelDirectChannelControl } from "@vierp/dashboard/components";
+import {
+  type ErpDepartment,
+  type ErpPermission,
+  type ErpModule,
+  type ErpRole,
+  type PublicErpUser,
+  erpDepartments,
+  erpModules,
+  erpRoles,
+  hasErpPermission,
+} from "@/lib/erp-access-policy";
 
-type ModuleItem = {
-  name: string;
-  status: string;
-  owner: string;
-  href: string;
-  icon: LucideIcon;
+type AuditEvent = {
+  id?: string;
+  at?: string;
+  actorEmail?: string;
+  module: string;
+  action: string;
+  target?: string;
+  status: "success" | "failure";
+  message?: string;
 };
 
-const modules: ModuleItem[] = [
-  {
-    name: "TravelOps",
-    status: "Control enabled",
-    owner: "Tour, room, supplier, booking ops",
-    href: "#travelops-control",
-    icon: Plane,
-  },
-  {
-    name: "AnVoyages",
-    status: "Direct channel",
-    owner: "Booking website and inventory API",
-    href: "#travelops-control",
-    icon: Building2,
-  },
-  {
-    name: "Accounting",
-    status: "Service linked",
-    owner: "Receivable, payable, profit",
-    href: "/accounting",
-    icon: Calculator,
-  },
-  {
-    name: "HRM",
-    status: "Service linked",
-    owner: "Operator, guide, sales team",
-    href: "/hrm",
-    icon: Users,
-  },
-  {
-    name: "ExcelAI",
-    status: "Service linked",
-    owner: "Import, reconcile, spreadsheet AI",
-    href: "/excelai",
-    icon: FileSpreadsheet,
-  },
-  {
-    name: "PM",
-    status: "Service linked",
-    owner: "Tour execution and tasks",
-    href: "/pm",
-    icon: KanbanSquare,
-  },
-  {
-    name: "CRM",
-    status: "Back office API",
-    owner: "Leads, customers, deals",
-    href: "/crm",
-    icon: BriefcaseBusiness,
-  },
-  {
-    name: "System",
-    status: "Runtime active",
-    owner: "Postgres, Redis, tunnel, services",
-    href: "#system-control",
-    icon: Database,
-  },
-];
+type UserDraft = {
+  role: ErpRole;
+  department: ErpDepartment;
+  active: boolean;
+};
 
-const operations = [
-  ["Booking Control", "Price, seasonal rules, inventory and stop-sell"],
-  ["Finance Flow", "Booking payment, supplier payable and profit snapshots"],
-  ["People Flow", "Sales owner, operator, guide and driver references"],
-  ["Execution Flow", "PM tasks, tour departures, incidents and documents"],
-  ["Data Flow", "ExcelAI import/export and reconciliation"],
-];
+const iconByModule: Record<ErpModule, LucideIcon> = {
+  travelops: Plane,
+  anvoyages: Building2,
+  crm: BriefcaseBusiness,
+  accounting: Calculator,
+  hrm: Users,
+  excelai: FileSpreadsheet,
+  pm: KanbanSquare,
+  system: Database,
+  users: Users,
+  audit: Activity,
+};
 
 const serviceRows = [
-  ["ERP Dashboard", "Next.js", "3012/root", "Runs this unified control shell"],
-  ["TravelOps API", "Next API", "/api/travelops/anvoyages/direct-control", "Applies direct channel changes"],
+  ["ERP Dashboard", "Next.js", "3012/root", "Unified control shell and RBAC"],
+  ["TravelOps API", "Next API", "/api/travelops/anvoyages/direct-control", "Session-protected direct channel changes"],
   ["AnVoyages API", "NestJS", "3021", "Booking channel backend"],
   ["PostgreSQL", "Docker", "15432", "TravelOps and AnVoyages databases"],
   ["Redis", "Docker", "16379", "Cache and job-ready runtime"],
   ["Cloudflare Tunnel", "systemd", "trycloudflare", "External test access"],
 ];
 
-const nextWork = [
-  ["Accounting rules", "Map booking revenue, deposits, supplier settlement and tax policy."],
-  ["HRM roster", "Assign guides/operators from HRM and sync availability into tour departures."],
-  ["ExcelAI import", "Upload room allotment and supplier rate sheets into TravelOps tables."],
-];
+const crmUrl = process.env.NEXT_PUBLIC_CRM_URL || "/crm";
 
 export default function UnifiedErpDashboard() {
-  const [controlToken, setControlToken] = useState("");
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const [sessionError, setSessionError] = useState("");
+  const [user, setUser] = useState<PublicErpUser | null>(null);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [users, setUsers] = useState<PublicErpUser[]>([]);
+  const [userDrafts, setUserDrafts] = useState<Record<string, UserDraft>>({});
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [savingUserId, setSavingUserId] = useState("");
+  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
+  const [newUser, setNewUser] = useState({
+    email: "",
+    name: "",
+    title: "",
+    password: "",
+    role: "OPS_MANAGER" as ErpRole,
+    department: "OPERATIONS" as ErpDepartment,
+  });
+  const [createUserLoading, setCreateUserLoading] = useState(false);
+  const [createUserMessage, setCreateUserMessage] = useState("");
 
-  const requestHeaders = useMemo(() => {
-    const trimmed = controlToken.trim();
-    return trimmed ? { "x-erp-control-token": trimmed } : undefined;
-  }, [controlToken]);
+  useEffect(() => {
+    void loadSession();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    if (hasPermission("users:read")) void loadUsers();
+    if (hasPermission("audit:read")) void loadAudit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const readableModules = useMemo(() => {
+    if (!user) return [];
+    return erpModules.filter((module) => hasPermission(module.readPermission));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  function hasPermission(permission: ErpPermission) {
+    return hasErpPermission(user, permission);
+  }
+
+  async function loadSession() {
+    setSessionLoading(true);
+    setSessionError("");
+    try {
+      const response = await fetch("/api/erp/auth/session", { credentials: "include" });
+      const body = await response.json().catch(() => null);
+      if (response.ok && body?.user) {
+        setUser(body.user);
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
+      setSessionError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSessionLoading(false);
+    }
+  }
+
+  async function login(event: FormEvent) {
+    event.preventDefault();
+    setLoginLoading(true);
+    setSessionError("");
+
+    try {
+      const response = await fetch("/api/erp/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok || !body?.user) {
+        throw new Error(body?.error || "Login failed");
+      }
+      setUser(body.user);
+      setLoginPassword("");
+    } catch (error) {
+      setSessionError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setLoginLoading(false);
+    }
+  }
+
+  async function logout() {
+    await fetch("/api/erp/auth/logout", { method: "POST", credentials: "include" }).catch(() => undefined);
+    setUser(null);
+    setUsers([]);
+    setAuditEvents([]);
+  }
+
+  async function loadUsers() {
+    setUsersLoading(true);
+    try {
+      const response = await fetch("/api/erp/users", { credentials: "include" });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(body?.error || "Cannot load users");
+      setUsers(body.users ?? []);
+      setUserDrafts(
+        Object.fromEntries(
+          (body.users ?? []).map((item: PublicErpUser) => [
+            item.id,
+            { role: item.role, department: item.department, active: item.active },
+          ]),
+        ),
+      );
+    } finally {
+      setUsersLoading(false);
+    }
+  }
+
+  async function loadAudit() {
+    const response = await fetch("/api/erp/audit?limit=30", { credentials: "include" });
+    const body = await response.json().catch(() => null);
+    if (response.ok) setAuditEvents(body.events ?? []);
+  }
+
+  async function createUser(event: FormEvent) {
+    event.preventDefault();
+    setCreateUserLoading(true);
+    setCreateUserMessage("");
+
+    try {
+      const response = await fetch("/api/erp/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(newUser),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(body?.error || "Cannot create user");
+
+      setCreateUserMessage(`Created ${body.user.email}`);
+      setNewUser({
+        email: "",
+        name: "",
+        title: "",
+        password: "",
+        role: "OPS_MANAGER",
+        department: "OPERATIONS",
+      });
+      await loadUsers();
+      if (hasPermission("audit:read")) await loadAudit();
+    } catch (error) {
+      setCreateUserMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setCreateUserLoading(false);
+    }
+  }
+
+  async function saveUser(userId: string) {
+    const draft = userDrafts[userId];
+    if (!draft) return;
+    setSavingUserId(userId);
+
+    try {
+      const response = await fetch(`/api/erp/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(draft),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(body?.error || "Cannot update user");
+      await loadUsers();
+      if (hasPermission("audit:read")) await loadAudit();
+    } catch (error) {
+      setCreateUserMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSavingUserId("");
+    }
+  }
+
+  if (sessionLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f6f7f9] text-[#111827]">
+        <div className="rounded-lg border border-[#d9dde5] bg-white px-5 py-4 text-sm font-medium">
+          Loading ERP session...
+        </div>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f6f7f9] px-4 text-[#111827]">
+        <form onSubmit={login} className="w-full max-w-md rounded-lg border border-[#d9dde5] bg-white p-5">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-normal text-emerald-700">
+            <ShieldCheck size={15} />
+            <span>ERP Secure Access</span>
+          </div>
+          <h1 className="mt-2 text-2xl font-semibold">VietERP Login</h1>
+          <p className="mt-1 text-sm leading-6 text-[#5f6b7a]">
+            Dang nhap bang tai khoan noi bo de dieu hanh TravelOps, CRM, Accounting, HRM, ExcelAI,
+            PM va user permissions.
+          </p>
+          <label className="mt-5 block">
+            <span className="text-xs font-semibold text-[#5f6b7a]">Email</span>
+            <input
+              type="email"
+              value={loginEmail}
+              onChange={(event) => setLoginEmail(event.target.value)}
+              className="mt-1 h-10 w-full rounded-md border border-[#cfd6df] px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              autoComplete="username"
+              required
+            />
+          </label>
+          <label className="mt-3 block">
+            <span className="text-xs font-semibold text-[#5f6b7a]">Password</span>
+            <input
+              type="password"
+              value={loginPassword}
+              onChange={(event) => setLoginPassword(event.target.value)}
+              className="mt-1 h-10 w-full rounded-md border border-[#cfd6df] px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              autoComplete="current-password"
+              required
+            />
+          </label>
+          {sessionError && (
+            <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {sessionError}
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={loginLoading}
+            className="mt-5 h-10 w-full rounded-md bg-[#111827] px-3 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            {loginLoading ? "Signing in..." : "Sign in"}
+          </button>
+        </form>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#f6f7f9] text-[#111827]">
@@ -127,23 +320,21 @@ export default function UnifiedErpDashboard() {
             </div>
             <h1 className="mt-1 text-2xl font-semibold text-[#0f172a]">VietERP Unified Dashboard</h1>
             <p className="mt-1 max-w-3xl text-sm text-[#526070]">
-              Một màn hình điều khiển cho toàn bộ module: TravelOps, AnVoyages, Accounting, HRM, CRM,
-              ExcelAI, PM và hạ tầng runtime.
+              Mot man hinh dieu hanh user, phong ban, module, CRM channel va TravelOps direct control.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <a
-              className="rounded-md border border-[#cfd6df] bg-white px-3 py-2 text-sm font-medium text-[#1f2937]"
-              href="#system-control"
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="rounded-md border border-[#cfd6df] bg-[#f8fafc] px-3 py-2 text-sm">
+              <span className="font-semibold">{user.name}</span>
+              <span className="ml-2 text-[#5f6b7a]">{roleLabel(user.role)}</span>
+            </div>
+            <button
+              onClick={logout}
+              className="inline-flex items-center gap-2 rounded-md border border-[#cfd6df] bg-white px-3 py-2 text-sm font-medium text-[#1f2937]"
             >
-              System
-            </a>
-            <a
-              className="rounded-md bg-[#111827] px-3 py-2 text-sm font-semibold text-white"
-              href="#travelops-control"
-            >
-              TravelOps Control
-            </a>
+              <LogOut size={15} />
+              Logout
+            </button>
           </div>
         </div>
       </div>
@@ -151,39 +342,57 @@ export default function UnifiedErpDashboard() {
       <div className="mx-auto grid max-w-7xl gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:px-8">
         <aside className="hidden lg:block">
           <nav className="sticky top-5 rounded-lg border border-[#d9dde5] bg-white p-2">
-            {modules.map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-[#374151] hover:bg-[#f0f3f6]"
-              >
-                <item.icon size={16} />
-                <span>{item.name}</span>
-              </a>
-            ))}
+            {readableModules.map((item) => {
+              const Icon = iconByModule[item.id];
+              return (
+                <a
+                  key={item.id}
+                  href={item.id === "crm" ? crmUrl : `#${item.id}-control`}
+                  className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-[#374151] hover:bg-[#f0f3f6]"
+                >
+                  <Icon size={16} />
+                  <span>{item.label}</span>
+                </a>
+              );
+            })}
           </nav>
         </aside>
 
         <div className="space-y-5">
           <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {modules.map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                className="rounded-lg border border-[#d9dde5] bg-white p-4 transition hover:border-[#aeb8c4]"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-md border border-[#d9dde5] bg-[#f8fafc]">
-                    <item.icon size={18} />
+            {erpModules.map((item) => {
+              const Icon = iconByModule[item.id];
+              const canRead = hasPermission(item.readPermission);
+              const canWrite = hasPermission(item.writePermission);
+              return (
+                <a
+                  key={item.id}
+                  href={canRead ? (item.id === "crm" ? crmUrl : `#${item.id}-control`) : "#access-control"}
+                  className={`rounded-lg border bg-white p-4 transition ${
+                    canRead ? "border-[#d9dde5] hover:border-[#aeb8c4]" : "border-[#e5e7eb] opacity-60"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-md border border-[#d9dde5] bg-[#f8fafc]">
+                      <Icon size={18} />
+                    </div>
+                    <span
+                      className={`rounded-md px-2 py-1 text-xs font-semibold ${
+                        canWrite
+                          ? "bg-emerald-50 text-emerald-700"
+                          : canRead
+                            ? "bg-blue-50 text-blue-700"
+                            : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      {canWrite ? "Write" : canRead ? "Read" : "No access"}
+                    </span>
                   </div>
-                  <span className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
-                    {item.status}
-                  </span>
-                </div>
-                <div className="mt-4 text-base font-semibold text-[#111827]">{item.name}</div>
-                <div className="mt-1 text-sm leading-5 text-[#5f6b7a]">{item.owner}</div>
-              </a>
-            ))}
+                  <div className="mt-4 text-base font-semibold text-[#111827]">{item.label}</div>
+                  <div className="mt-1 text-sm leading-5 text-[#5f6b7a]">{item.purpose}</div>
+                </a>
+              );
+            })}
           </section>
 
           <section id="travelops-control" className="rounded-lg border border-[#d9dde5] bg-white p-4">
@@ -194,56 +403,284 @@ export default function UnifiedErpDashboard() {
                   <span>TravelOps and AnVoyages Control</span>
                 </div>
                 <p className="mt-1 text-sm text-[#5f6b7a]">
-                  Điều chỉnh giá phòng, giá option, rule mùa cao điểm và tồn phòng trực tiếp từ
-                  dashboard ERP.
+                  Price, seasonal rules, inventory and stop-sell are now protected by logged-in ERP
+                  permissions.
                 </p>
               </div>
-              <label className="block xl:w-96">
-                <span className="text-xs font-semibold text-[#5f6b7a]">ERP control token</span>
-                <input
-                  type="password"
-                  value={controlToken}
-                  onChange={(event) => setControlToken(event.target.value)}
-                  placeholder="x-erp-control-token"
-                  className="mt-1 h-10 w-full rounded-md border border-[#cfd6df] bg-white px-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                />
-              </label>
+              <div className="rounded-md border border-[#d9dde5] bg-[#f8fafc] px-3 py-2 text-xs text-[#5f6b7a]">
+                Required: <span className="font-mono font-semibold text-[#111827]">travelops:write</span>
+              </div>
             </div>
-            <TravelDirectChannelControl
-              tenantId="travel-company"
-              channelCode="anvoyages"
-              actorRef="erp-unified-dashboard"
-              requestHeaders={requestHeaders}
-              className="border-[#d9dde5] shadow-none"
-            />
+            {hasPermission("travelops:write") ? (
+              <TravelDirectChannelControl
+                tenantId="travel-company"
+                channelCode="anvoyages"
+                actorRef={`erp:${user.email}`}
+                className="border-[#d9dde5] shadow-none"
+              />
+            ) : (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
+                Tai khoan nay chi xem duoc module, khong co quyen sua gia/tong phong.
+              </div>
+            )}
+          </section>
+
+          <section id="crm-control" className="rounded-lg border border-[#d9dde5] bg-white p-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <BriefcaseBusiness size={17} />
+                  <span>CRM Booking Channel</span>
+                </div>
+                <p className="mt-1 text-sm text-[#5f6b7a]">
+                  ERP keeps CRM as an operating module. Access depends on crm:read/crm:write permissions.
+                </p>
+              </div>
+              <a
+                href={crmUrl}
+                className={`rounded-md px-3 py-2 text-sm font-semibold ${
+                  hasPermission("crm:read") ? "bg-[#111827] text-white" : "bg-slate-100 text-slate-500"
+                }`}
+              >
+                Open CRM Module
+              </a>
+            </div>
+          </section>
+
+          <section id="access-control" className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+            <div className="rounded-lg border border-[#d9dde5] bg-white p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Users size={17} />
+                <span>Users, Roles and Departments</span>
+              </div>
+
+              {hasPermission("users:read") ? (
+                <div className="mt-4 overflow-x-auto">
+                  <table className="min-w-full text-left text-sm">
+                    <thead className="text-xs uppercase text-[#64748b]">
+                      <tr>
+                        <th className="border-b border-[#e2e6ec] px-2 py-2">User</th>
+                        <th className="border-b border-[#e2e6ec] px-2 py-2">Role</th>
+                        <th className="border-b border-[#e2e6ec] px-2 py-2">Department</th>
+                        <th className="border-b border-[#e2e6ec] px-2 py-2">Active</th>
+                        <th className="border-b border-[#e2e6ec] px-2 py-2"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {usersLoading ? (
+                        <tr>
+                          <td className="px-2 py-3 text-[#5f6b7a]" colSpan={5}>
+                            Loading users...
+                          </td>
+                        </tr>
+                      ) : (
+                        users.map((item) => {
+                          const draft = userDrafts[item.id] ?? {
+                            role: item.role,
+                            department: item.department,
+                            active: item.active,
+                          };
+                          return (
+                            <tr key={item.id} className="border-b border-[#eef2f7] last:border-b-0">
+                              <td className="px-2 py-2">
+                                <div className="font-semibold">{item.name}</div>
+                                <div className="text-xs text-[#5f6b7a]">{item.email}</div>
+                              </td>
+                              <td className="px-2 py-2">
+                                <select
+                                  value={draft.role}
+                                  disabled={!hasPermission("users:write")}
+                                  onChange={(event) =>
+                                    setUserDrafts((current) => ({
+                                      ...current,
+                                      [item.id]: { ...draft, role: event.target.value as ErpRole },
+                                    }))
+                                  }
+                                  className="h-9 rounded-md border border-[#cfd6df] bg-white px-2 text-xs"
+                                >
+                                  {erpRoles.map((role) => (
+                                    <option key={role.id} value={role.id}>
+                                      {role.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="px-2 py-2">
+                                <select
+                                  value={draft.department}
+                                  disabled={!hasPermission("users:write")}
+                                  onChange={(event) =>
+                                    setUserDrafts((current) => ({
+                                      ...current,
+                                      [item.id]: { ...draft, department: event.target.value as ErpDepartment },
+                                    }))
+                                  }
+                                  className="h-9 rounded-md border border-[#cfd6df] bg-white px-2 text-xs"
+                                >
+                                  {erpDepartments.map((department) => (
+                                    <option key={department.id} value={department.id}>
+                                      {department.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="px-2 py-2">
+                                <label className="flex items-center gap-2 text-xs">
+                                  <input
+                                    type="checkbox"
+                                    checked={draft.active}
+                                    disabled={!hasPermission("users:write")}
+                                    onChange={(event) =>
+                                      setUserDrafts((current) => ({
+                                        ...current,
+                                        [item.id]: { ...draft, active: event.target.checked },
+                                      }))
+                                    }
+                                  />
+                                  {draft.active ? "Active" : "Disabled"}
+                                </label>
+                              </td>
+                              <td className="px-2 py-2 text-right">
+                                {hasPermission("users:write") && (
+                                  <button
+                                    onClick={() => void saveUser(item.id)}
+                                    disabled={savingUserId === item.id}
+                                    className="rounded-md bg-[#111827] px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
+                                  >
+                                    {savingUserId === item.id ? "Saving" : "Save"}
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
+                  Tai khoan nay khong co quyen xem danh sach user.
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-5">
+              {hasPermission("users:write") && (
+                <form onSubmit={createUser} className="rounded-lg border border-[#d9dde5] bg-white p-4">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <UserPlus size={17} />
+                    <span>Create Internal User</span>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    <input
+                      value={newUser.email}
+                      onChange={(event) => setNewUser((current) => ({ ...current, email: event.target.value }))}
+                      placeholder="email@company.vn"
+                      className="h-9 w-full rounded-md border border-[#cfd6df] px-3 text-sm"
+                      type="email"
+                      required
+                    />
+                    <input
+                      value={newUser.name}
+                      onChange={(event) => setNewUser((current) => ({ ...current, name: event.target.value }))}
+                      placeholder="Full name"
+                      className="h-9 w-full rounded-md border border-[#cfd6df] px-3 text-sm"
+                      required
+                    />
+                    <input
+                      value={newUser.title}
+                      onChange={(event) => setNewUser((current) => ({ ...current, title: event.target.value }))}
+                      placeholder="Title"
+                      className="h-9 w-full rounded-md border border-[#cfd6df] px-3 text-sm"
+                    />
+                    <input
+                      value={newUser.password}
+                      onChange={(event) => setNewUser((current) => ({ ...current, password: event.target.value }))}
+                      placeholder="Temporary password, min 12 chars"
+                      className="h-9 w-full rounded-md border border-[#cfd6df] px-3 text-sm"
+                      type="password"
+                      required
+                    />
+                    <select
+                      value={newUser.role}
+                      onChange={(event) => setNewUser((current) => ({ ...current, role: event.target.value as ErpRole }))}
+                      className="h-9 w-full rounded-md border border-[#cfd6df] bg-white px-3 text-sm"
+                    >
+                      {erpRoles.map((role) => (
+                        <option key={role.id} value={role.id}>
+                          {role.label}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={newUser.department}
+                      onChange={(event) =>
+                        setNewUser((current) => ({ ...current, department: event.target.value as ErpDepartment }))
+                      }
+                      className="h-9 w-full rounded-md border border-[#cfd6df] bg-white px-3 text-sm"
+                    >
+                      {erpDepartments.map((department) => (
+                        <option key={department.id} value={department.id}>
+                          {department.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {createUserMessage && <div className="mt-2 text-xs text-[#5f6b7a]">{createUserMessage}</div>}
+                  <button
+                    type="submit"
+                    disabled={createUserLoading}
+                    className="mt-3 h-9 w-full rounded-md bg-[#111827] text-sm font-semibold text-white disabled:opacity-60"
+                  >
+                    {createUserLoading ? "Creating..." : "Create user"}
+                  </button>
+                </form>
+              )}
+
+              <div className="rounded-lg border border-[#d9dde5] bg-white p-4">
+                <div className="text-sm font-semibold">Departments</div>
+                <div className="mt-3 space-y-3">
+                  {erpDepartments.map((department) => (
+                    <div key={department.id} className="border-t border-[#eef2f7] pt-3 first:border-t-0 first:pt-0">
+                      <div className="text-sm font-semibold">{department.label}</div>
+                      <div className="text-xs text-[#5f6b7a]">{department.purpose}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </section>
 
           <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
             <div className="rounded-lg border border-[#d9dde5] bg-white p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-[#111827]">
-                <Activity size={17} />
-                <span>Operating Workflows</span>
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Bot size={17} />
+                <span>Role Permission Matrix</span>
               </div>
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
-                {operations.map(([label, value]) => (
-                  <div key={label} className="rounded-md border border-[#e2e6ec] bg-[#fbfcfd] p-3">
-                    <div className="text-sm font-semibold text-[#111827]">{label}</div>
-                    <div className="mt-1 text-sm leading-5 text-[#5f6b7a]">{value}</div>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                {erpRoles.map((role) => (
+                  <div key={role.id} className="rounded-md border border-[#e2e6ec] bg-[#fbfcfd] p-3">
+                    <div className="text-sm font-semibold">{role.label}</div>
+                    <div className="mt-1 text-xs leading-5 text-[#5f6b7a]">{role.purpose}</div>
+                    <div className="mt-2 text-xs font-semibold text-[#2563eb]">
+                      {role.permissions.includes("*") ? "All permissions" : `${role.permissions.length} permissions`}
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
             <div id="system-control" className="rounded-lg border border-[#d9dde5] bg-white p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-[#111827]">
-                <Settings2 size={17} />
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Database size={17} />
                 <span>Runtime Control Surface</span>
               </div>
               <div className="mt-4 space-y-3">
                 {serviceRows.map(([name, kind, target, note]) => (
                   <div key={name} className="border-t border-[#e2e6ec] pt-3 first:border-t-0 first:pt-0">
                     <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm font-semibold text-[#111827]">{name}</div>
+                      <div className="text-sm font-semibold">{name}</div>
                       <div className="rounded-md bg-[#eef2f7] px-2 py-1 text-xs font-medium text-[#475569]">
                         {kind}
                       </div>
@@ -256,22 +693,46 @@ export default function UnifiedErpDashboard() {
             </div>
           </section>
 
-          <section className="rounded-lg border border-[#d9dde5] bg-white p-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-[#111827]">
-              <Bot size={17} />
-              <span>Next Control Work</span>
-            </div>
-            <div className="mt-3 grid gap-3 md:grid-cols-3">
-              {nextWork.map(([title, text]) => (
-                <div key={title} className="rounded-md border border-[#e2e6ec] bg-[#fbfcfd] p-3">
-                  <div className="text-sm font-semibold">{title}</div>
-                  <div className="mt-1 text-sm leading-5 text-[#5f6b7a]">{text}</div>
-                </div>
-              ))}
-            </div>
-          </section>
+          {hasPermission("audit:read") && (
+            <section id="audit-control" className="rounded-lg border border-[#d9dde5] bg-white p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Activity size={17} />
+                <span>Audit Log</span>
+              </div>
+              <div className="mt-3 grid gap-2">
+                {auditEvents.length === 0 ? (
+                  <div className="text-sm text-[#5f6b7a]">No audit events yet.</div>
+                ) : (
+                  auditEvents.map((event) => (
+                    <div key={event.id ?? `${event.at}-${event.action}`} className="rounded-md border border-[#eef2f7] p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-sm font-semibold">
+                          {event.module}:{event.action}
+                        </div>
+                        <div
+                          className={`rounded-md px-2 py-1 text-xs font-semibold ${
+                            event.status === "success" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
+                          }`}
+                        >
+                          {event.status}
+                        </div>
+                      </div>
+                      <div className="mt-1 text-xs leading-5 text-[#5f6b7a]">
+                        {event.at} · {event.actorEmail ?? "system"} · {event.target ?? "-"}
+                      </div>
+                      {event.message && <div className="mt-1 text-xs text-red-700">{event.message}</div>}
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </main>
   );
+}
+
+function roleLabel(role: ErpRole) {
+  return erpRoles.find((item) => item.id === role)?.label ?? role;
 }

@@ -4,6 +4,8 @@ import {
   handleTravelOpsDirectControlBody,
   type TravelOpsDirectControlEnv,
 } from "@vierp/travelops/backoffice/direct-channel-control";
+import { hasErpPermission } from "@/lib/erp-access-policy";
+import { appendErpAuditEvent, getErpUserFromRequest } from "@/lib/erp-auth-server";
 
 const routePath = "/api/travelops/anvoyages/direct-control";
 
@@ -11,9 +13,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
+  let actorRef = "unknown";
+
   try {
-    const actorRef = authorizeRequest(request);
-    if (actorRef instanceof NextResponse) return actorRef;
+    const authorization = await authorizeRequest(request);
+    if (authorization instanceof NextResponse) return authorization;
+    actorRef = authorization.actorRef;
 
     const body = await readJsonBody(request);
     const result = await handleTravelOpsDirectControlBody(
@@ -21,8 +26,30 @@ export async function POST(request: NextRequest) {
       { anvoyages: createAnVoyagesDirectClientFromEnv(getDirectControlEnv()) },
     );
 
+    await appendErpAuditEvent({
+      actorId: authorization.actorId,
+      actorEmail: authorization.actorEmail,
+      module: "travelops",
+      action: String(body.action ?? "direct-control"),
+      target: String(body.externalOptionId ?? body.externalPropertyId ?? body.channelCode ?? "anvoyages"),
+      status: result.status < 400 ? "success" : "failure",
+      metadata: {
+        httpStatus: result.status,
+        channelCode: body.channelCode,
+        tenantId: body.tenantId,
+      },
+    }).catch(() => undefined);
+
     return NextResponse.json(result.body, { status: result.status });
   } catch (error) {
+    await appendErpAuditEvent({
+      actorEmail: actorRef,
+      module: "travelops",
+      action: "direct-control",
+      status: "failure",
+      message: error instanceof Error ? error.message : String(error),
+    }).catch(() => undefined);
+
     return toErrorResponse(error);
   }
 }
@@ -37,7 +64,40 @@ function getDirectControlEnv(): TravelOpsDirectControlEnv {
   };
 }
 
-function authorizeRequest(request: NextRequest): string | NextResponse {
+async function authorizeRequest(request: NextRequest): Promise<
+  | {
+      actorRef: string;
+      actorId?: string;
+      actorEmail?: string;
+    }
+  | NextResponse
+> {
+  const user = await getErpUserFromRequest(request).catch(() => null);
+
+  if (user) {
+    if (!hasErpPermission(user, "travelops:write")) {
+      return NextResponse.json(
+        { ok: false, code: "FORBIDDEN", error: "Missing permission travelops:write" },
+        { status: 403 },
+      );
+    }
+
+    return {
+      actorRef: `erp:${user.email}`,
+      actorId: user.id,
+      actorEmail: user.email,
+    };
+  }
+
+  return authorizeServiceToken(request);
+}
+
+function authorizeServiceToken(request: NextRequest):
+  | {
+      actorRef: string;
+      actorEmail?: string;
+    }
+  | NextResponse {
   const controlToken =
     process.env.VIETERP_TRAVELOPS_CONTROL_TOKEN ?? process.env.TRAVELOPS_DIRECT_CONTROL_TOKEN;
   const headerToken =
@@ -56,12 +116,15 @@ function authorizeRequest(request: NextRequest): string | NextResponse {
 
   if (headerToken !== controlToken) {
     return NextResponse.json(
-      { ok: false, code: "UNAUTHORIZED", error: "Invalid ERP control token" },
+      { ok: false, code: "UNAUTHENTICATED", error: "Login required or invalid service token" },
       { status: 401 },
     );
   }
 
-  return "erp-dashboard";
+  return {
+    actorRef: "service:travelops-direct-control",
+    actorEmail: "service:travelops-direct-control",
+  };
 }
 
 async function readJsonBody(request: NextRequest) {
