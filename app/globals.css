@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(45, 212, 191, 0.08), transparent 32rem),
+    linear-gradient(180deg, #080b0f 0%, #10151d 45%, #080b0f 100%);
+  color: #eef4f7;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(45, 212, 191, 0.35);
+}
+
+@keyframes mouthTongueFloat {
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1);
+  }
+  45% {
+    transform: translateY(-1.5px) scaleY(0.96);
+  }
+  70% {
+    transform: translateY(1px) scaleY(1.03);
+  }
+}
+
+@keyframes mouthLipPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.025);
+  }
+}
+
+.mouth-tongue-float,
+.mouth-lip-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.mouth-tongue-float {
+  animation: mouthTongueFloat 900ms cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+}
+
+.mouth-lip-pulse {
+  animation: mouthLipPulse 900ms ease-in-out infinite;
+}
