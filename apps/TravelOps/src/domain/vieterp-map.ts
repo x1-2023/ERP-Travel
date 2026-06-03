@@ -81,5 +81,40 @@ export const vietErpModuleMappings = [
     targetEntity: "WorkbookDataset",
     relation: "target",
     purpose: "Export margin snapshots for analysis, forecasting, and management reporting."
+  },
+  {
+    travelOpsEntity: "TravelRateRule",
+    module: "Accounting",
+    targetEntity: "RevenueAccount/PriceList",
+    relation: "reference",
+    purpose: "Keep seasonal price changes tied to revenue accounts, tax policy, and approval history."
+  },
+  {
+    travelOpsEntity: "TravelRateRule",
+    module: "ExcelAI",
+    targetEntity: "PricingScenario",
+    relation: "target",
+    purpose: "Simulate seasonal uplift, holiday pricing, and margin impact before publishing to channels."
+  },
+  {
+    travelOpsEntity: "TravelInventoryBlock",
+    module: "PM",
+    targetEntity: "CapacityTask",
+    relation: "target",
+    purpose: "Track room/cabin stop-sell, request-only windows, and operational follow-up."
+  },
+  {
+    travelOpsEntity: "TravelSalesChannel",
+    module: "CRM",
+    targetEntity: "Channel",
+    relation: "reference",
+    purpose: "Treat AnVoyages, OTA, social, and manual channels as booking sources."
+  },
+  {
+    travelOpsEntity: "TravelChannelSyncJob",
+    module: "Notifications",
+    targetEntity: "Alert",
+    relation: "target",
+    purpose: "Notify operators when price, inventory, booking, or payment sync fails."
   }
 ] as const satisfies readonly VietErpModuleMapping[];

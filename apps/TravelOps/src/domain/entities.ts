@@ -1,5 +1,7 @@
 export type TravelOpsEntityGroup =
   | "product"
+  | "pricing"
+  | "inventory"
   | "sales"
   | "operation"
   | "supplier"
@@ -32,10 +34,38 @@ export const travelOpsEntities = [
   },
   {
     name: "TourPriceTier",
-    group: "product",
+    group: "pricing",
     table: "travel_price_tiers",
     ownsFinancialImpact: true,
     primaryVietErpRefs: ["Accounting.Item"]
+  },
+  {
+    name: "TravelRateRule",
+    group: "pricing",
+    table: "travel_rate_rules",
+    ownsFinancialImpact: true,
+    primaryVietErpRefs: ["Accounting.RevenueAccount", "HRM.Employee", "ExcelAI.WorkbookDataset"]
+  },
+  {
+    name: "TravelInventoryBlock",
+    group: "inventory",
+    table: "travel_inventory_blocks",
+    ownsFinancialImpact: true,
+    primaryVietErpRefs: ["PM.Task", "HRM.Employee", "Notifications.Alert"]
+  },
+  {
+    name: "TravelSalesChannel",
+    group: "integration",
+    table: "travel_sales_channels",
+    ownsFinancialImpact: false,
+    primaryVietErpRefs: ["CRM.Channel", "Notifications.Alert"]
+  },
+  {
+    name: "TravelChannelSyncJob",
+    group: "integration",
+    table: "travel_channel_sync_jobs",
+    ownsFinancialImpact: false,
+    primaryVietErpRefs: ["Notifications.Alert", "PM.Issue"]
   },
   {
     name: "TourDeparture",

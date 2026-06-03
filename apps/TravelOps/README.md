@@ -5,11 +5,13 @@ TravelOps is the vertical module for travel agencies and tour operators. It owns
 ## Scope
 
 - Tour catalog: `TourPackage`, `TourItineraryDay`, `TourPriceTier`
+- Back-office pricing: `TravelRateRule`
+- Inventory/yield control: `TravelInventoryBlock`
 - Sales and reservations: `TourDeparture`, `Booking`, `BookingPassenger`
 - Suppliers and contracts: `Supplier`, `SupplierContract`, `SupplierRate`
 - Operations: `ServiceVoucher`, `GuideAssignment`, `TravelDocument`, `TravelInsurancePolicy`, `TourIncident`
 - Finance: `TourCostLine`, `BookingPayment`, `AgentCommission`, `TourProfitSnapshot`
-- Integration: `VietErpEntityMap`
+- Integration: `TravelSalesChannel`, `TravelChannelSyncJob`, `VietErpEntityMap`
 
 ## VietERP Mapping
 
@@ -28,6 +30,12 @@ TravelOps keeps its own operational database tables and stores cross-module refe
 ## AnVoyages Booking CRM Integration
 
 `x1-2023/AnVoyages-Booking---CRM` should be treated as a booking channel, not copied wholesale into VietERP. The integration kit in `src/integrations/anvoyages` maps AnVoyages `Property`, `ProductOption`, `Booking`, `Supplier`, and `Payment` records into TravelOps entities.
+
+Outbound sync builders export ERP-managed pricing and inventory to AnVoyages:
+
+- Property/package price rules: `PATCH /api/properties/:id`
+- Room/cabin/package option rates: `PATCH /api/properties/options/:optionId/rate`
+- Daily inventory overrides: `PATCH /api/properties/options/:optionId/inventory`
 
 See `docs/ANVOYAGES_VIETERP_INTEGRATION.md` for the comparison and target workflow.
 

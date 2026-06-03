@@ -15,7 +15,7 @@ Do not copy AnVoyages directly into VietERP as another full app. Keep it as a bo
 | `Location` | Destination landing page and SEO | `TourPackage.destinationRegion` plus metadata |
 | `Property` | Sellable hotel, homestay, tour, cruise, transport product | `TourPackage` |
 | `ProductOption` | Room/cabin/package/vehicle variant, price and capacity | `TourPriceTier` plus inventory metadata |
-| `ProductOptionInventory` | Date-level unit availability | Future `TravelInventoryBlock` or PM capacity task |
+| `ProductOptionInventory` | Date-level unit availability | `TravelInventoryBlock` |
 | `Booking` | Public booking, status, payment intent, Sepay reference | `Booking` plus generated `TourDeparture` |
 | `Customer` | Web lead/customer identity | CRM customer/contact reference |
 | `Lead` | Web CRM lead | CRM lead/opportunity reference |
@@ -33,6 +33,7 @@ Do not copy AnVoyages directly into VietERP as another full app. Keep it as a bo
 3. AnVoyages pushes booking events to VietERP, or VietERP pulls periodic snapshots from AnVoyages.
 4. TravelOps writes Accounting/CRM/PM/HRM references after back-office actions are created.
 5. `VietErpEntityMap` stores source IDs, sync direction, retry state, and external refs.
+6. ERP operators manage room/cabin/package price rules in `TravelRateRule` and inventory in `TravelInventoryBlock`, then publish to AnVoyages as outbound sync jobs.
 
 ## Mapping Rules Implemented
 
@@ -43,6 +44,8 @@ The initial integration kit lives in `apps/TravelOps/src/integrations/anvoyages`
 - `Supplier` -> `Supplier`
 - `Booking` -> generated `TourDeparture` plus `Booking`
 - `Payment` -> `BookingPayment`
+- `TravelRateRule` -> AnVoyages `pricingRules`
+- `TravelInventoryBlock` -> AnVoyages `ProductOptionInventory`
 
 Status conversion:
 
@@ -61,5 +64,18 @@ Status conversion:
 
 - Add an authenticated webhook endpoint in AnVoyages for `booking.created`, `booking.updated`, and `payment.paid`.
 - Add a TravelOps API endpoint or worker to persist the normalized import plan.
-- Add inventory-specific entity if hotel/cruise room/cabin inventory needs ERP-grade controls.
+- Add a TravelOps worker that executes `TravelChannelSyncJob` rows against AnVoyages using admin JWT or a service token.
 - Decide whether marketing CMS/blog stays in AnVoyages or moves to a separate content module.
+
+## Back-Office Price and Inventory Publishing
+
+TravelOps now owns the ERP-side entities needed for back-office pricing:
+
+| ERP entity | Purpose | AnVoyages endpoint |
+| --- | --- | --- |
+| `TravelRateRule` | Seasonal, holiday, weekday, event, manual, and occupancy price rules | `PATCH /api/properties/:id` or `PATCH /api/properties/options/:optionId/rate` |
+| `TravelInventoryBlock` | Daily room/cabin/vehicle/package availability, stop-sell, request-only, closed dates | `PATCH /api/properties/options/:optionId/inventory` |
+| `TravelSalesChannel` | Channel config for AnVoyages, OTA, social, manual/API channels | Sync config |
+| `TravelChannelSyncJob` | Retryable sync queue and audit log | Outbound or inbound sync |
+
+The AnVoyages backend supports `PATCH /api/properties/options/:optionId/rate` so ERP can change room/cabin option rates without recreating all property options.

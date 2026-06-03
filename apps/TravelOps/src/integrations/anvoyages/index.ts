@@ -10,6 +10,16 @@ export {
   type TravelOpsImportPlan
 } from "./mappers";
 
+export {
+  buildAnVoyagesBulkInventoryRequests,
+  buildAnVoyagesInventoryRequest,
+  buildAnVoyagesOptionRateRequest,
+  buildAnVoyagesPropertyRateRequest,
+  type AnVoyagesOutboundRequest,
+  type TravelOpsChannelTarget,
+  type TravelOpsInventoryBlockForChannel
+} from "./outbound";
+
 export type {
   AnVoyagesBooking,
   AnVoyagesCustomer,

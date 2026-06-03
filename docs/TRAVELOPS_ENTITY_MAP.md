@@ -9,6 +9,10 @@ This document maps the travel-company vertical into VietERP without forcing unre
 | `TourPackage` | TravelOps | Reusable tour product and commercial template |
 | `TourItineraryDay` | TravelOps | Day-by-day operating plan |
 | `TourPriceTier` | TravelOps | Pax-based package pricing |
+| `TravelRateRule` | TravelOps plus Accounting/ExcelAI | Seasonal, holiday, weekday, event, manual, and occupancy price rules |
+| `TravelInventoryBlock` | TravelOps plus PM | Daily room/cabin/vehicle/package availability, stop-sell, and request-only controls |
+| `TravelSalesChannel` | TravelOps plus CRM | AnVoyages, OTA, social, manual, and API channel configuration |
+| `TravelChannelSyncJob` | TravelOps plus Notifications | Retryable sync log for prices, inventory, bookings, payments, and suppliers |
 | `TourDeparture` | TravelOps | Concrete departure date, capacity, and operating budget |
 | `Booking` | TravelOps | Reservation, pax count, revenue, and invoice reference |
 | `BookingPassenger` | TravelOps | Passenger identity, passport, visa, and special requests |
@@ -37,6 +41,7 @@ This document maps the travel-company vertical into VietERP without forcing unre
 7. Guide/operator assignments reference HRM employees or external guide suppliers.
 8. Documents store passports, visas, tickets, contracts, vouchers, and insurance files.
 9. Completed departures generate `TourProfitSnapshot` rows for management reports and ExcelAI analysis.
+10. Back-office users update `TravelRateRule` or `TravelInventoryBlock`; TravelOps publishes changes to AnVoyages through `TravelChannelSyncJob`.
 
 ## Integration Boundary
 
@@ -47,5 +52,6 @@ TravelOps should not duplicate core accounting ledgers, HR employee records, CRM
 - `pmProjectRef`, `purchaseRequestRef`
 - `operatorEmployeeRef`, `guideEmployeeRef`, `createdByEmployeeRef`
 - `fileRef`, `documentRef`
+- `sourceSystem`, `sourceRecordId`, `TravelSalesChannel`, `TravelChannelSyncJob`
 
 Use `VietErpEntityMap` when a relation needs sync metadata, retries, external IDs, or bidirectional mapping.

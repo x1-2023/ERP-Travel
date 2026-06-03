@@ -11,4 +11,5 @@ export {
   type VietErpModuleName
 } from "./domain/vieterp-map";
 
+export * from "./backoffice";
 export * from "./integrations/anvoyages";

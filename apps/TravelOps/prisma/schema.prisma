@@ -282,6 +282,66 @@ enum IntegrationSyncStatus {
   SKIPPED
 }
 
+enum TravelRateRuleType {
+  SEASONAL
+  DATE_RANGE
+  WEEKDAY
+  HOLIDAY
+  EVENT
+  OCCUPANCY
+  MANUAL
+}
+
+enum TravelRateAdjustmentType {
+  FIXED_PRICE
+  AMOUNT_INCREASE
+  PERCENT_INCREASE
+  AMOUNT_DISCOUNT
+  PERCENT_DISCOUNT
+}
+
+enum TravelInventoryStatus {
+  OPEN
+  CLOSED
+  STOP_SELL
+  REQUEST_ONLY
+}
+
+enum TravelChannelProvider {
+  ANVOYAGES
+  WEBSITE
+  OTA
+  FACEBOOK
+  ZALO
+  MANUAL
+  API
+}
+
+enum TravelChannelStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ERROR
+  DISABLED
+}
+
+enum TravelChannelSyncEntity {
+  TOUR_PACKAGE
+  PRICE_TIER
+  RATE_RULE
+  INVENTORY_BLOCK
+  BOOKING
+  PAYMENT
+  SUPPLIER
+}
+
+enum TravelChannelSyncOperation {
+  IMPORT
+  EXPORT
+  UPSERT
+  DELETE
+}
+
 model TourPackage {
   id                      String            @id @default(cuid())
   tenantId                String
@@ -329,6 +389,8 @@ model TourPackage {
   departures      TourDeparture[]
   itineraryDays   TourItineraryDay[]
   priceTiers      TourPriceTier[]
+  rateRules       TravelRateRule[]
+  inventoryBlocks TravelInventoryBlock[]
   costLines       TourCostLine[]
   vouchers        ServiceVoucher[]
   documents       TravelDocument[]
@@ -390,6 +452,8 @@ model TourPriceTier {
   updatedAt         DateTime  @updatedAt
 
   tourPackage TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  rateRules   TravelRateRule[]
+  inventoryBlocks TravelInventoryBlock[]
 
   @@index([tenantId, sourceSystem, sourceRecordId])
   @@index([tenantId, packageId])
@@ -907,4 +971,135 @@ model VietErpEntityMap {
   @@index([tenantId, targetModule, targetEntityType, targetEntityId])
   @@index([tenantId, syncStatus])
   @@map("travel_vieterp_entity_maps")
+}
+
+model TravelRateRule {
+  id                     String                   @id @default(cuid())
+  tenantId               String
+  packageId              String?
+  priceTierId            String?
+  sourceSystem           String?
+  sourceRecordId         String?
+  name                   String
+  ruleType               TravelRateRuleType       @default(SEASONAL)
+  adjustmentType         TravelRateAdjustmentType @default(FIXED_PRICE)
+  priority               Int                      @default(0)
+  startDate              DateTime?                @db.Date
+  endDate                DateTime?                @db.Date
+  months                 Int[]                    @default([])
+  weekdays               Int[]                    @default([])
+  holidayDates           String[]                 @default([])
+  currency               String                   @default("VND")
+  basePrice              Decimal?                 @db.Decimal(18, 4)
+  adultPrice             Decimal?                 @db.Decimal(18, 4)
+  childPrice             Decimal?                 @db.Decimal(18, 4)
+  adjustmentAmount       Decimal?                 @db.Decimal(18, 4)
+  adjustmentPercent      Decimal?                 @db.Decimal(10, 4)
+  extraFee               Decimal?                 @db.Decimal(18, 4)
+  minNights              Int?
+  requiredMealName       String?
+  requiredMealPrice      Decimal?                 @db.Decimal(18, 4)
+  requiredMealChargeType String?
+  isActive               Boolean                  @default(true)
+  publishToChannels      String[]                 @default([])
+  accountingRevenueAccountRef String?
+  approvedByEmployeeRef  String?
+  approvedAt             DateTime?
+  createdByEmployeeRef   String?
+  metadata               Json?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+
+  tourPackage TourPackage?  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  priceTier   TourPriceTier? @relation(fields: [priceTierId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, packageId, isActive])
+  @@index([tenantId, priceTierId, isActive])
+  @@index([tenantId, sourceSystem, sourceRecordId])
+  @@index([tenantId, startDate, endDate])
+  @@map("travel_rate_rules")
+}
+
+model TravelInventoryBlock {
+  id                    String                @id @default(cuid())
+  tenantId              String
+  packageId             String?
+  priceTierId           String?
+  sourceSystem          String?
+  sourceRecordId        String?
+  date                  DateTime              @db.Date
+  totalUnits            Int
+  heldUnits             Int                   @default(0)
+  bookedUnits           Int                   @default(0)
+  closed                Boolean               @default(false)
+  status                TravelInventoryStatus @default(OPEN)
+  note                  String?
+  publishToChannels     String[]              @default([])
+  pmTaskRef             String?
+  updatedByEmployeeRef  String?
+  metadata              Json?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  tourPackage TourPackage?  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  priceTier   TourPriceTier? @relation(fields: [priceTierId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, priceTierId, date])
+  @@index([tenantId, packageId, date])
+  @@index([tenantId, sourceSystem, sourceRecordId])
+  @@index([tenantId, status])
+  @@map("travel_inventory_blocks")
+}
+
+model TravelSalesChannel {
+  id                String               @id @default(cuid())
+  tenantId          String
+  provider          TravelChannelProvider
+  code              String
+  name              String
+  status            TravelChannelStatus  @default(DRAFT)
+  baseUrl           String?
+  authType          String?
+  externalTenantRef String?
+  defaultCurrency   String               @default("VND")
+  lastPullAt        DateTime?
+  lastPushAt        DateTime?
+  config            Json?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  syncJobs TravelChannelSyncJob[]
+
+  @@unique([tenantId, provider, code])
+  @@index([tenantId, provider, status])
+  @@map("travel_sales_channels")
+}
+
+model TravelChannelSyncJob {
+  id              String                     @id @default(cuid())
+  tenantId        String
+  channelId       String?
+  entityType      TravelChannelSyncEntity
+  entityId        String?
+  operation       TravelChannelSyncOperation @default(UPSERT)
+  direction       IntegrationDirection       @default(BIDIRECTIONAL)
+  status          IntegrationSyncStatus      @default(PENDING)
+  sourceSystem    String?
+  sourceRecordId  String?
+  targetEndpoint  String?
+  requestPayload  Json?
+  responsePayload Json?
+  errorMessage    String?
+  attempts        Int                        @default(0)
+  nextRetryAt     DateTime?
+  lastSyncedAt    DateTime?
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+
+  channel TravelSalesChannel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, channelId, status])
+  @@index([tenantId, entityType, entityId])
+  @@index([tenantId, sourceSystem, sourceRecordId])
+  @@map("travel_channel_sync_jobs")
 }
