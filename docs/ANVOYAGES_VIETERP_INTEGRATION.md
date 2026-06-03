@@ -102,6 +102,10 @@ Recommended mount path for the ERP dashboard/API app:
 POST /api/travelops/anvoyages/direct-control
 ```
 
+The CRM app now mounts this route at the path above. Browser requests use CRM
+`ADMIN` or `MANAGER` RBAC. Server-to-server tests can pass
+`x-erp-control-token: $VIETERP_TRAVELOPS_CONTROL_TOKEN`.
+
 Supported actions:
 
 ```json

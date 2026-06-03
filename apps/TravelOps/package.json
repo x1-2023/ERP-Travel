@@ -5,6 +5,16 @@
   "description": "Travel operations module for tour operators, agencies, bookings, suppliers, and tour finance.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./backoffice/direct-channel-control": {
+      "types": "./dist/backoffice/direct-channel-control.d.ts",
+      "default": "./dist/backoffice/direct-channel-control.js"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
