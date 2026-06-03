@@ -26,6 +26,10 @@ enum TourType {
   MICE
   TAILOR_MADE
   DAY_TRIP
+  CRUISE
+  STAY
+  TRANSPORT
+  ADDON
 }
 
 enum TourPackageStatus {
@@ -282,8 +286,15 @@ model TourPackage {
   id                      String            @id @default(cuid())
   tenantId                String
   code                    String
+  sourceSystem            String?
+  sourceRecordId          String?
+  slug                    String?
   name                    String
+  nameVi                  String?
+  nameEn                  String?
   description             String?
+  descriptionVi           String?
+  descriptionEn           String?
   market                  TourMarket
   type                    TourType
   status                  TourPackageStatus @default(DRAFT)
@@ -300,6 +311,13 @@ model TourPackage {
   defaultChildPrice       Decimal?          @db.Decimal(18, 4)
   defaultCostEstimate     Decimal           @default(0) @db.Decimal(18, 4)
   tags                    String[]
+  images                  String[]          @default([])
+  amenities               String[]          @default([])
+  seoTitleVi              String?
+  seoTitleEn              String?
+  seoDescriptionVi        String?
+  seoDescriptionEn        String?
+  metadata                Json?
   ownerEmployeeRef        String?
   crmCampaignRef          String?
   pmTemplateProjectRef    String?
@@ -318,6 +336,7 @@ model TourPackage {
   profitSnapshots TourProfitSnapshot[]
 
   @@unique([tenantId, code])
+  @@index([tenantId, sourceSystem, sourceRecordId])
   @@index([tenantId, status])
   @@index([tenantId, market, type])
   @@map("travel_tour_packages")
@@ -348,7 +367,12 @@ model TourPriceTier {
   id                String    @id @default(cuid())
   tenantId          String
   packageId         String
+  sourceSystem      String?
+  sourceRecordId    String?
+  optionType        String?
   name              String
+  nameVi            String?
+  nameEn            String?
   minPax            Int
   maxPax            Int?
   currency          String    @default("VND")
@@ -356,14 +380,18 @@ model TourPriceTier {
   childPrice        Decimal?  @db.Decimal(18, 4)
   infantPrice       Decimal?  @db.Decimal(18, 4)
   singleSup         Decimal?  @db.Decimal(18, 4)
+  costPrice         Decimal   @default(0) @db.Decimal(18, 4)
+  inventoryQuantity Int?
   validFrom         DateTime? @db.Date
   validTo           DateTime? @db.Date
+  metadata          Json?
   accountingItemRef String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
   tourPackage TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
 
+  @@index([tenantId, sourceSystem, sourceRecordId])
   @@index([tenantId, packageId])
   @@index([tenantId, validFrom, validTo])
   @@map("travel_price_tiers")
@@ -374,6 +402,8 @@ model TourDeparture {
   tenantId                String
   packageId               String
   code                    String
+  sourceSystem            String?
+  sourceRecordId          String?
   startDate               DateTime        @db.Date
   endDate                 DateTime        @db.Date
   status                  DepartureStatus @default(PLANNED)
@@ -401,6 +431,7 @@ model TourDeparture {
   profitSnapshots TourProfitSnapshot[]
 
   @@unique([tenantId, code])
+  @@index([tenantId, sourceSystem, sourceRecordId])
   @@index([tenantId, packageId, startDate])
   @@index([tenantId, status])
   @@map("travel_departures")
@@ -411,9 +442,13 @@ model Booking {
   tenantId             String
   departureId          String
   bookingNo            String
+  sourceSystem         String?
+  sourceRecordId       String?
+  sourceBookingCode    String?
   source               BookingSource       @default(DIRECT)
   customerType         BookingCustomerType @default(INDIVIDUAL)
   status               BookingStatus       @default(INQUIRY)
+  externalStatus       String?
   customerRef          String?
   crmLeadRef           String?
   crmOpportunityRef    String?
@@ -433,6 +468,12 @@ model Booking {
   depositDueAmount     Decimal             @default(0) @db.Decimal(18, 4)
   paidAmount           Decimal             @default(0) @db.Decimal(18, 4)
   balanceDueAmount     Decimal             @default(0) @db.Decimal(18, 4)
+  travelStartDate      DateTime?           @db.Date
+  travelEndDate        DateTime?           @db.Date
+  bookingIntent        String?
+  requestedPaymentMethod String?
+  paymentReference     String?
+  transferContent      String?
   bookedAt             DateTime            @default(now())
   confirmedAt          DateTime?
   cancelledAt          DateTime?
@@ -454,6 +495,8 @@ model Booking {
   profitSnapshots TourProfitSnapshot[]
 
   @@unique([tenantId, bookingNo])
+  @@index([tenantId, sourceSystem, sourceRecordId])
+  @@index([tenantId, sourceBookingCode])
   @@index([tenantId, departureId])
   @@index([tenantId, status])
   @@index([tenantId, customerRef])
@@ -492,6 +535,8 @@ model Supplier {
   id                  String         @id @default(cuid())
   tenantId            String
   code                String
+  sourceSystem        String?
+  sourceRecordId      String?
   name                String
   type                SupplierType
   status              SupplierStatus @default(PROSPECT)
@@ -506,6 +551,7 @@ model Supplier {
   crmAccountRef       String?
   rating              Int?
   notes               String?
+  metadata            Json?
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
 
@@ -519,6 +565,7 @@ model Supplier {
   insurancePolicies TravelInsurancePolicy[]
 
   @@unique([tenantId, code])
+  @@index([tenantId, sourceSystem, sourceRecordId])
   @@index([tenantId, type, status])
   @@map("travel_suppliers")
 }

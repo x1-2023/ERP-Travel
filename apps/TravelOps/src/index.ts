@@ -10,3 +10,5 @@ export {
   type VietErpModuleMapping,
   type VietErpModuleName
 } from "./domain/vieterp-map";
+
+export * from "./integrations/anvoyages";

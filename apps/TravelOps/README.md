@@ -25,6 +25,12 @@ TravelOps keeps its own operational database tables and stores cross-module refe
 | Passport, visa, voucher | Documents | File storage and verification state |
 | Profit snapshot | ExcelAI | Workbook dataset for margin analysis |
 
+## AnVoyages Booking CRM Integration
+
+`x1-2023/AnVoyages-Booking---CRM` should be treated as a booking channel, not copied wholesale into VietERP. The integration kit in `src/integrations/anvoyages` maps AnVoyages `Property`, `ProductOption`, `Booking`, `Supplier`, and `Payment` records into TravelOps entities.
+
+See `docs/ANVOYAGES_VIETERP_INTEGRATION.md` for the comparison and target workflow.
+
 ## Commands
 
 ```bash
