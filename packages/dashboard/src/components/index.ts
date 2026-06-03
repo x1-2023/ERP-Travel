@@ -15,5 +15,8 @@ export type { default as DataTableType } from './DataTable';
 export { ModuleStatus } from './ModuleStatus';
 export type { default as ModuleStatusType } from './ModuleStatus';
 
+export { TravelDirectChannelControl } from './TravelDirectChannelControl';
+export type { default as TravelDirectChannelControlType } from './TravelDirectChannelControl';
+
 export { DashboardGrid, WidgetContainer, ResponsiveDashboard } from './DashboardGrid';
 export type { default as DashboardGridType } from './DashboardGrid';
