@@ -38,3 +38,4 @@
 - 2026-06-02: Replaced the anatomy-style mouth with a Google-like minimal parametric mouth rig: light blue tile, soft blue line art, interpolated mouth geometry, subtle co-articulation toward the next viseme, and tongue only when the viseme needs it. Re-ran `npm run lint`, `npm run typecheck`, and `npm run build` successfully.
 - 2026-06-03: Preparing repository for GitHub remote `https://github.com/x1-2023/ERP-Travel.git`; next steps are git init, commit, branch rename to `main`, and push.
 - 2026-06-03: Pre-push validation passed: `npm run lint`, `npm run build`, and sequential `npm run typecheck`.
+- 2026-06-03: Git repository initialized, remote `origin` added, branch renamed to `main`, and initial commit `c50557c` pushed to `origin/main`.
