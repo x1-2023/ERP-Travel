@@ -39,6 +39,43 @@ Direct apply helpers update AnVoyages immediately from the ERP save flow:
 
 Use `applyAnVoyagesPropertyRateDirectly`, `applyAnVoyagesOptionRateDirectly`, and `applyAnVoyagesInventoryDirectly` when ERP users change back-office pricing or inventory. These calls are synchronous and should return API errors directly to the ERP user.
 
+For an ERP API route, use `handleTravelOpsDirectControlBody`:
+
+```typescript
+import {
+  createAnVoyagesDirectClientFromEnv,
+  handleTravelOpsDirectControlBody,
+} from "@vierp/travelops";
+
+export async function POST(request: Request) {
+  const result = await handleTravelOpsDirectControlBody(await request.json(), {
+    anvoyages: createAnVoyagesDirectClientFromEnv(process.env),
+  });
+
+  return Response.json(result.body, { status: result.status });
+}
+```
+
+Example payload:
+
+```json
+{
+  "action": "OPTION_RATE",
+  "tenantId": "demo",
+  "externalOptionId": "anvoyages-option-id",
+  "baseRate": { "basePrice": 2500000, "adultPrice": 2500000 },
+  "rules": [
+    {
+      "name": "Summer uplift",
+      "ruleType": "SEASONAL",
+      "adjustmentType": "PERCENT_INCREASE",
+      "months": [6, 7, 8],
+      "adjustmentPercent": 20
+    }
+  ]
+}
+```
+
 See `docs/ANVOYAGES_VIETERP_INTEGRATION.md` for the comparison and target workflow.
 
 ## Commands

@@ -135,9 +135,11 @@ export function buildAnVoyagesPropertyPricingPatch(
 }
 
 export function applyRateRule(baseRate: BaseRate, rule: TravelPricingRule): ResolvedRate {
+  const adultBasePrice = baseRate.adultPrice ?? baseRate.basePrice;
+  const childBasePrice = baseRate.childPrice ?? adultBasePrice;
   const basePrice = applyAdjustment(baseRate.basePrice, rule, rule.basePrice);
-  const adultPrice = applyAdjustment(baseRate.adultPrice ?? baseRate.basePrice, rule, rule.adultPrice);
-  const childPrice = applyAdjustment(baseRate.childPrice ?? adultPrice, rule, rule.childPrice);
+  const adultPrice = applyAdjustment(adultBasePrice, rule, rule.adultPrice);
+  const childPrice = applyAdjustment(childBasePrice, rule, rule.childPrice);
   const extraFee = numberOrUndefined(rule.extraFee) ?? baseRate.extraFee;
 
   return compactObject({

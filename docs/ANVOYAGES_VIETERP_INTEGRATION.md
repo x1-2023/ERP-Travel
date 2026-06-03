@@ -89,3 +89,23 @@ TravelOps exports direct AnVoyages apply helpers in `apps/TravelOps/src/integrat
 - `applyAnVoyagesBulkInventoryDirectly`
 
 These helpers call AnVoyages synchronously. If AnVoyages rejects the change, ERP should show the failure to the operator and keep the ERP-side save inside a transaction boundary that can be rolled back or marked as failed.
+
+TravelOps also exports an API-neutral command handler from `apps/TravelOps/src/backoffice/direct-channel-control.ts`.
+
+- `handleTravelOpsDirectControlBody`
+- `applyTravelOpsDirectControlCommand`
+- `createAnVoyagesDirectClientFromEnv`
+
+Recommended mount path for the ERP dashboard/API app:
+
+```text
+POST /api/travelops/anvoyages/direct-control
+```
+
+Supported actions:
+
+```json
+{ "action": "PROPERTY_RATE" }
+{ "action": "OPTION_RATE" }
+{ "action": "INVENTORY" }
+```

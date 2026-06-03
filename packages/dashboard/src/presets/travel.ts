@@ -127,6 +127,22 @@ export const travelDashboard: DashboardPreset = {
         refreshInterval: 300000,
       },
       {
+        id: 'travel-direct-channel-control',
+        type: 'custom',
+        title: 'Direct Price and Inventory Control | Dieu Khien Gia Va Ton Truc Tiep',
+        module: 'TravelOps',
+        size: 'xl',
+        data: {
+          component: 'TravelDirectChannelControl',
+          actions: ['PROPERTY_RATE', 'OPTION_RATE', 'INVENTORY'],
+          endpoints: {
+            directApply: '/api/travelops/anvoyages/direct-control',
+          },
+          sourceModule: 'apps/TravelOps',
+          targetModule: 'apps/AnVoyages-Booking-CRM',
+        },
+      },
+      {
         id: 'travel-operations-checklist',
         type: 'table',
         title: 'Departure Operations | Viec Van Hanh Chuyen Di',

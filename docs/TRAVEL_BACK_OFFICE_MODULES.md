@@ -35,6 +35,7 @@ The ERP dashboard package exposes a `travel` preset and module registry. It incl
 - AnVoyages Booking CRM as the public booking channel submodule.
 - TravelOps as the travel system of record.
 - Accounting, HRM, PM, CRM, ExcelAI, Documents, and Notifications as back-office modules.
+- A direct price and inventory control widget that should mount `POST /api/travelops/anvoyages/direct-control` and call `handleTravelOpsDirectControlBody`.
 
 AnVoyages source is tracked as a Git submodule at `apps/AnVoyages-Booking-CRM`.
 
