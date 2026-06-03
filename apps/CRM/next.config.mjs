@@ -9,6 +9,7 @@ const nextConfig = {
   reactStrictMode: true,
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
+  transpilePackages: ['@vierp/dashboard'],
   experimental: {
     optimizePackageImports: ['lucide-react', 'recharts', 'date-fns'],
   },

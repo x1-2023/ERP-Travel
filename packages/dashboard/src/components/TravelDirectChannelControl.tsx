@@ -9,6 +9,7 @@ export interface TravelDirectChannelControlProps {
   tenantId?: string;
   channelCode?: string;
   actorRef?: string;
+  requestHeaders?: Record<string, string>;
   className?: string;
   onApplied?: (result: unknown) => void;
   onError?: (error: Error) => void;
@@ -25,6 +26,7 @@ export const TravelDirectChannelControl: React.FC<TravelDirectChannelControlProp
   tenantId = 'default',
   channelCode = 'anvoyages',
   actorRef,
+  requestHeaders,
   className,
   onApplied,
   onError,
@@ -75,7 +77,7 @@ export const TravelDirectChannelControl: React.FC<TravelDirectChannelControlProp
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...requestHeaders },
         body: JSON.stringify(requestPreview),
       });
       const body = await response.json().catch(() => null);
