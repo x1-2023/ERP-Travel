@@ -20,6 +20,8 @@ export * from './presets';
 export { executiveDashboard } from './presets/executive';
 export { operationsDashboard } from './presets/operations';
 export { hrDashboard } from './presets/hr';
+export { travelDashboard } from './presets/travel';
+export * from './module-registry';
 
 // Version
 export const version = '1.0.0';

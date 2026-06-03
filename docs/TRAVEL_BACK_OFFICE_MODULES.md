@@ -6,6 +6,7 @@ VietERP should be the back-office ERP for the travel business. AnVoyages remains
 
 | Module | Required | Travel responsibility |
 | --- | --- | --- |
+| AnVoyages Booking CRM | Yes | Public booking website and booking channel under TravelOps |
 | TravelOps | Yes | Product catalog, bookings, departures, seasonal pricing, inventory, channel sync |
 | Accounting | Yes | AR invoice, AP bill, deposits, VAT, commissions, bank reconciliation, departure margin |
 | HRM | Yes | Sales owner, operator, guide, driver, document verifier, payroll references |
@@ -26,6 +27,21 @@ VietERP should be the back-office ERP for the travel business. AnVoyages remains
    - `PATCH /api/properties/options/:optionId/rate` for room/cabin/package option price rules.
    - `PATCH /api/properties/options/:optionId/inventory` for daily availability overrides.
 6. New AnVoyages bookings flow back into TravelOps and then into CRM, Accounting, PM, HRM, Documents, and ExcelAI.
+
+## ERP Dashboard
+
+The ERP dashboard package exposes a `travel` preset and module registry. It includes:
+
+- AnVoyages Booking CRM as the public booking channel submodule.
+- TravelOps as the travel system of record.
+- Accounting, HRM, PM, CRM, ExcelAI, Documents, and Notifications as back-office modules.
+
+AnVoyages source is tracked as a Git submodule at `apps/AnVoyages-Booking-CRM`.
+
+```bash
+git submodule update --init --recursive
+npm run build --workspace @vierp/dashboard
+```
 
 ## Why This Shape
 

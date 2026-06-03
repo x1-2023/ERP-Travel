@@ -8,6 +8,18 @@ export interface TravelBackOfficeModule {
 
 export const travelBackOfficeModules = [
   {
+    module: "AnVoyages Booking CRM",
+    role: "Public booking channel under TravelOps",
+    required: true,
+    travelResponsibilities: [
+      "Customer-facing booking website",
+      "Public product, room, cabin, package, and transport browsing",
+      "Booking capture, payment handoff, and customer self-service states",
+      "Receives price and inventory publishing from TravelOps"
+    ],
+    integrationRefs: ["TravelSalesChannel", "TravelChannelSyncJob", "VietErpEntityMap"]
+  },
+  {
     module: "TravelOps",
     role: "Travel vertical system of record",
     required: true,

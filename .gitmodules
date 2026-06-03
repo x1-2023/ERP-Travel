@@ -1,0 +1,3 @@
+[submodule "apps/AnVoyages-Booking-CRM"]
+	path = apps/AnVoyages-Booking-CRM
+	url = https://github.com/x1-2023/AnVoyages-Booking---CRM.git

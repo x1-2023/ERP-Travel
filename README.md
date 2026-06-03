@@ -89,6 +89,7 @@ Tổng thể / Overall:  ██████████████████�
 | **TPM-API** | TPM Backend | — | Vercel |
 | **TPM-API-NestJS** | TPM Backend (NestJS) | 3010 | NestJS |
 | **TPM-Web** | TPM Frontend | 5180 | Vite |
+| **AnVoyages Booking CRM** | Public travel booking website and CRM channel under TravelOps | 5173 / API 3000 | Vite + NestJS |
 | **TravelOps** | Travel agency and tour operator operations | TBD | Prisma/TypeScript |
 | **PM** | Quản lý dự án / Project Management | 5173 | Vite |
 | **ExcelAI** | Phân tích Excel bằng AI / AI-powered Excel Analysis | 5173 | Vite |
