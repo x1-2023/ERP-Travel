@@ -39,3 +39,4 @@
 - 2026-06-03: Preparing repository for GitHub remote `https://github.com/x1-2023/ERP-Travel.git`; next steps are git init, commit, branch rename to `main`, and push.
 - 2026-06-03: Pre-push validation passed: `npm run lint`, `npm run build`, and sequential `npm run typecheck`.
 - 2026-06-03: Git repository initialized, remote `origin` added, branch renamed to `main`, and initial commit `c50557c` pushed to `origin/main`.
+- 2026-06-03: Follow-up worklog commit `5aa67bf` pushed to `origin/main`. VPS pull/test is pending because this machine has no SSH config or known deploy path for this project; known_hosts contains prior hosts but no username/path mapping.
