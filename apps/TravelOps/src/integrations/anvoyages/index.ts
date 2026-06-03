@@ -11,10 +11,21 @@ export {
 } from "./mappers";
 
 export {
+  applyAnVoyagesBulkInventoryDirectly,
+  applyAnVoyagesInventoryDirectly,
+  applyAnVoyagesOptionRateDirectly,
+  applyAnVoyagesPropertyRateDirectly,
+  applyAnVoyagesRequestDirectly,
   buildAnVoyagesBulkInventoryRequests,
   buildAnVoyagesInventoryRequest,
   buildAnVoyagesOptionRateRequest,
   buildAnVoyagesPropertyRateRequest,
+  AnVoyagesDirectApplyError,
+  type AnVoyagesDirectApplyResult,
+  type AnVoyagesDirectClientConfig,
+  type AnVoyagesFetch,
+  type AnVoyagesFetchInit,
+  type AnVoyagesFetchResponse,
   type AnVoyagesOutboundRequest,
   type TravelOpsChannelTarget,
   type TravelOpsInventoryBlockForChannel

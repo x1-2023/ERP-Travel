@@ -15,9 +15,9 @@ export const travelBackOfficeModules = [
       "Customer-facing booking website",
       "Public product, room, cabin, package, and transport browsing",
       "Booking capture, payment handoff, and customer self-service states",
-      "Receives price and inventory publishing from TravelOps"
+      "Receives immediate price and inventory changes from TravelOps direct apply"
     ],
-    integrationRefs: ["TravelSalesChannel", "TravelChannelSyncJob", "VietErpEntityMap"]
+    integrationRefs: ["TravelSalesChannel", "VietErpEntityMap"]
   },
   {
     module: "TravelOps",
@@ -25,7 +25,7 @@ export const travelBackOfficeModules = [
     required: true,
     travelResponsibilities: [
       "Tour, room, cabin, package, and transport product catalog",
-      "Seasonal pricing rules and channel publishing",
+      "Seasonal pricing rules and direct channel apply",
       "Inventory blocks, stop-sell days, and request-only dates",
       "Bookings, passengers, vouchers, guide assignment, supplier cost lines"
     ],
@@ -103,8 +103,8 @@ export const travelBackOfficeModules = [
     required: false,
     travelResponsibilities: [
       "Alert for new web bookings, payment success, low inventory, stop-sell conflicts",
-      "Notify guide/operator when assignment changes"
+      "Notify users when a direct AnVoyages apply fails or guide/operator assignment changes"
     ],
-    integrationRefs: ["TravelChannelSyncJob", "TourIncident"]
+    integrationRefs: ["TravelSalesChannel", "TourIncident"]
   }
 ] as const satisfies readonly TravelBackOfficeModule[];

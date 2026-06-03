@@ -1,6 +1,6 @@
 /**
  * Travel Back-Office Dashboard Preset
- * Focus: AnVoyages booking channel, TravelOps, Accounting, HRM, PM, CRM, ExcelAI, and channel sync.
+ * Focus: AnVoyages booking channel, TravelOps, Accounting, HRM, PM, CRM, ExcelAI, and direct channel control.
  */
 
 import { DashboardPreset } from '../types';
@@ -10,9 +10,9 @@ export const travelDashboard: DashboardPreset = {
   name: 'Travel Back-Office Dashboard',
   nameVI: 'Dashboard Back-Office Du Lich',
   description:
-    'Unified travel ERP dashboard covering public booking, operations, accounting, HRM, PM, CRM, ExcelAI, documents, and channel sync',
+    'Unified travel ERP dashboard covering public booking, operations, accounting, HRM, PM, CRM, ExcelAI, documents, and direct channel control',
   descriptionVI:
-    'Dashboard ERP tong hop cho booking public, van hanh tour, ke toan, nhan su, du an, CRM, ExcelAI, tai lieu va dong bo kenh',
+    'Dashboard ERP tong hop cho booking public, van hanh tour, ke toan, nhan su, du an, CRM, ExcelAI, tai lieu va dieu khien kenh truc tiep',
   defaultTimeRange: 'TODAY',
   autoRefreshInterval: 30000,
   layout: {
@@ -81,7 +81,7 @@ export const travelDashboard: DashboardPreset = {
         refreshInterval: 300000,
       },
       {
-        id: 'travel-sync-status',
+        id: 'travel-direct-channel-status',
         type: 'moduleStatus',
         title: 'Travel Module Health | Suc Khoe Module Du Lich',
         size: 'xl',

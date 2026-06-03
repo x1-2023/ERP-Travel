@@ -109,12 +109,5 @@ export const vietErpModuleMappings = [
     targetEntity: "Channel",
     relation: "reference",
     purpose: "Treat AnVoyages, OTA, social, and manual channels as booking sources."
-  },
-  {
-    travelOpsEntity: "TravelChannelSyncJob",
-    module: "Notifications",
-    targetEntity: "Alert",
-    relation: "target",
-    purpose: "Notify operators when price, inventory, booking, or payment sync fails."
   }
 ] as const satisfies readonly VietErpModuleMapping[];

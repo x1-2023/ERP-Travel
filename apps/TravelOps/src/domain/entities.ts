@@ -61,13 +61,6 @@ export const travelOpsEntities = [
     primaryVietErpRefs: ["CRM.Channel", "Notifications.Alert"]
   },
   {
-    name: "TravelChannelSyncJob",
-    group: "integration",
-    table: "travel_channel_sync_jobs",
-    ownsFinancialImpact: false,
-    primaryVietErpRefs: ["Notifications.Alert", "PM.Issue"]
-  },
-  {
     name: "TourDeparture",
     group: "operation",
     table: "travel_departures",

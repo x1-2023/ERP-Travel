@@ -40,4 +40,4 @@ The dashboard preset `travel` includes:
 - Documents
 - Notifications
 
-Back-office users should manage pricing and inventory in TravelOps, then publish to AnVoyages through channel sync jobs.
+Back-office users manage pricing and inventory in TravelOps. When they save, ERP applies the change directly to AnVoyages through authenticated AnVoyages API calls.

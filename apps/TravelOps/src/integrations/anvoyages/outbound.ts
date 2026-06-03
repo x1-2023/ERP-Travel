@@ -26,6 +26,48 @@ export interface AnVoyagesOutboundRequest {
   body: Record<string, unknown>;
 }
 
+export interface AnVoyagesDirectClientConfig {
+  baseUrl: string;
+  bearerToken?: string;
+  headers?: Record<string, string>;
+  fetch?: AnVoyagesFetch;
+}
+
+export interface AnVoyagesDirectApplyResult {
+  request: AnVoyagesOutboundRequest;
+  status: number;
+  response?: unknown;
+}
+
+export interface AnVoyagesFetchResponse {
+  ok: boolean;
+  status: number;
+  statusText?: string;
+  text: () => Promise<string>;
+}
+
+export interface AnVoyagesFetchInit {
+  method: string;
+  headers: Record<string, string>;
+  body?: string;
+}
+
+export type AnVoyagesFetch = (input: string, init: AnVoyagesFetchInit) => Promise<AnVoyagesFetchResponse>;
+
+export class AnVoyagesDirectApplyError extends Error {
+  readonly request: AnVoyagesOutboundRequest;
+  readonly status?: number;
+  readonly response?: unknown;
+
+  constructor(message: string, request: AnVoyagesOutboundRequest, status?: number, response?: unknown) {
+    super(message);
+    this.name = "AnVoyagesDirectApplyError";
+    this.request = request;
+    this.status = status;
+    this.response = response;
+  }
+}
+
 export function buildAnVoyagesPropertyRateRequest(input: {
   externalPropertyId: string;
   baseRate: BaseRate;
@@ -80,6 +122,86 @@ export function buildAnVoyagesBulkInventoryRequests(
   blocks: readonly TravelOpsInventoryBlockForChannel[]
 ) {
   return blocks.map((block) => buildAnVoyagesInventoryRequest(externalOptionId, block));
+}
+
+export async function applyAnVoyagesRequestDirectly(
+  request: AnVoyagesOutboundRequest,
+  client: AnVoyagesDirectClientConfig
+): Promise<AnVoyagesDirectApplyResult> {
+  const fetchFn = client.fetch ?? (globalThis as { fetch?: AnVoyagesFetch }).fetch;
+  if (!fetchFn) {
+    throw new AnVoyagesDirectApplyError("No fetch implementation is available for direct AnVoyages apply", request);
+  }
+
+  const response = await fetchFn(buildAnVoyagesUrl(client.baseUrl, request.endpoint), {
+    method: request.method,
+    headers: compactObject({
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Authorization: client.bearerToken ? `Bearer ${client.bearerToken}` : undefined,
+      ...client.headers
+    }) as Record<string, string>,
+    body: JSON.stringify(request.body)
+  });
+  const responseBody = parseResponseBody(await response.text());
+
+  if (!response.ok) {
+    throw new AnVoyagesDirectApplyError(
+      `AnVoyages direct apply failed with HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ""}`,
+      request,
+      response.status,
+      responseBody
+    );
+  }
+
+  return {
+    request,
+    status: response.status,
+    response: responseBody
+  };
+}
+
+export function applyAnVoyagesPropertyRateDirectly(
+  input: Parameters<typeof buildAnVoyagesPropertyRateRequest>[0],
+  client: AnVoyagesDirectClientConfig
+) {
+  return applyAnVoyagesRequestDirectly(buildAnVoyagesPropertyRateRequest(input), client);
+}
+
+export function applyAnVoyagesOptionRateDirectly(
+  input: Parameters<typeof buildAnVoyagesOptionRateRequest>[0],
+  client: AnVoyagesDirectClientConfig
+) {
+  return applyAnVoyagesRequestDirectly(buildAnVoyagesOptionRateRequest(input), client);
+}
+
+export function applyAnVoyagesInventoryDirectly(
+  externalOptionId: string,
+  block: TravelOpsInventoryBlockForChannel,
+  client: AnVoyagesDirectClientConfig
+) {
+  return applyAnVoyagesRequestDirectly(buildAnVoyagesInventoryRequest(externalOptionId, block), client);
+}
+
+export function applyAnVoyagesBulkInventoryDirectly(
+  externalOptionId: string,
+  blocks: readonly TravelOpsInventoryBlockForChannel[],
+  client: AnVoyagesDirectClientConfig
+) {
+  return Promise.all(blocks.map((block) => applyAnVoyagesInventoryDirectly(externalOptionId, block, client)));
+}
+
+function buildAnVoyagesUrl(baseUrl: string, endpoint: string) {
+  return `${baseUrl.replace(/\/+$/, "")}/${endpoint.replace(/^\/+/, "")}`;
+}
+
+function parseResponseBody(body: string) {
+  if (!body) return undefined;
+  try {
+    return JSON.parse(body) as unknown;
+  } catch {
+    return body;
+  }
 }
 
 function toDateKey(value: string | Date) {
