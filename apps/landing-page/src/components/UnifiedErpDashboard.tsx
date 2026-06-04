@@ -47,6 +47,14 @@ type UserDraft = {
   active: boolean;
 };
 
+type ModulePanelDefinition = {
+  id: Extract<ErpModule, "anvoyages" | "accounting" | "hrm" | "excelai" | "pm">;
+  summary: string;
+  metrics: [string, string][];
+  workflows: [string, string][];
+  controls: string[];
+};
+
 const iconByModule: Record<ErpModule, LucideIcon> = {
   travelops: Plane,
   anvoyages: Building2,
@@ -70,6 +78,84 @@ const serviceRows = [
 ];
 
 const crmLaunchUrl = "/api/erp/crm/launch?next=/travelops";
+
+const moduleOperatingPanels: ModulePanelDefinition[] = [
+  {
+    id: "anvoyages",
+    summary: "Control the booking website channel from ERP without a sync job.",
+    metrics: [
+      ["Channel", "Direct apply"],
+      ["Inventory", "Room allotment"],
+      ["Rates", "Season rules"],
+    ],
+    workflows: [
+      ["Rate publish", "Push room price, seasonal multiplier, and stop-sell rules to AnVoyages."],
+      ["Booking handoff", "Keep customer and booking context visible for sales and operations."],
+      ["Channel audit", "Every direct apply command carries ERP actor and module permission."],
+    ],
+    controls: ["Room price rules", "Seasonal surcharge", "Stop-sell dates", "Booking channel status"],
+  },
+  {
+    id: "accounting",
+    summary: "Back-office finance surface for deposits, receivables, payables, and tour margin.",
+    metrics: [
+      ["Cash in", "Deposits"],
+      ["Cash out", "Suppliers"],
+      ["Margin", "Tour profit"],
+    ],
+    workflows: [
+      ["Booking receivable", "Track customer deposit, balance due, invoice status, and payment method."],
+      ["Supplier payable", "Track hotel, airline, guide, driver, and agency settlement obligations."],
+      ["Monthly close", "Export revenue, payable, tax, and profit snapshots for accountant review."],
+    ],
+    controls: ["Receivable queue", "Supplier payable queue", "Tour profit report", "Excel export"],
+  },
+  {
+    id: "hrm",
+    summary: "People operations for staff, departments, guides, drivers, and access lifecycle.",
+    metrics: [
+      ["Staff", "Internal users"],
+      ["Roster", "Guides/drivers"],
+      ["Access", "Role based"],
+    ],
+    workflows: [
+      ["Department ownership", "Map employees to operations, sales, finance, HR, PMO, and data teams."],
+      ["Guide and driver roster", "Assign internal or external resources to tour departures."],
+      ["Access request", "Create, disable, and change roles from the ERP user panel."],
+    ],
+    controls: ["Employee roster", "Guide assignment", "Driver assignment", "Access review"],
+  },
+  {
+    id: "excelai",
+    summary: "Data and reconciliation layer for supplier sheets, room allotments, and reports.",
+    metrics: [
+      ["Imports", "Supplier sheets"],
+      ["Checks", "Reconcile"],
+      ["Exports", "Reports"],
+    ],
+    workflows: [
+      ["Supplier import", "Normalize hotel room lists, costs, allocations, and seasonal price sheets."],
+      ["Data validation", "Flag missing cost, duplicate room, date overlap, and margin anomalies."],
+      ["Report pack", "Prepare accounting, sales, and operations exports from one ERP source."],
+    ],
+    controls: ["Upload template", "Validate sheet", "Reconcile costs", "Export report pack"],
+  },
+  {
+    id: "pm",
+    summary: "Execution workspace for tour departures, tasks, checklists, incidents, and documents.",
+    metrics: [
+      ["Departures", "Active tours"],
+      ["Tasks", "Ops checklist"],
+      ["Issues", "Incidents"],
+    ],
+    workflows: [
+      ["Departure plan", "Track itinerary, rooming list, transport, guide, supplier, and document status."],
+      ["Task execution", "Assign operating tasks to sales, operations, accountant, HR, and PM owners."],
+      ["Incident follow-up", "Log blockers, customer issues, supplier changes, and resolution status."],
+    ],
+    controls: ["Departure board", "Task checklist", "Incident log", "Document pack"],
+  },
+];
 
 export default function UnifiedErpDashboard() {
   const [sessionLoading, setSessionLoading] = useState(true);
@@ -445,6 +531,76 @@ export default function UnifiedErpDashboard() {
                 Open CRM Module
               </a>
             </div>
+          </section>
+
+          <section className="grid gap-5 xl:grid-cols-2">
+            {moduleOperatingPanels.map((panel) => {
+              const module = erpModules.find((item) => item.id === panel.id);
+              if (!module || !hasPermission(module.readPermission)) return null;
+
+              const Icon = iconByModule[panel.id];
+              const canWrite = hasPermission(module.writePermission);
+
+              return (
+                <div
+                  key={panel.id}
+                  id={`${panel.id}-control`}
+                  className="rounded-lg border border-[#d9dde5] bg-white p-4"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 text-sm font-semibold">
+                        <Icon size={17} />
+                        <span>{module.label} Control</span>
+                      </div>
+                      <p className="mt-1 text-sm leading-6 text-[#5f6b7a]">{panel.summary}</p>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-md px-2 py-1 text-xs font-semibold ${
+                        canWrite ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700"
+                      }`}
+                    >
+                      {canWrite ? "Operator access" : "Read only"}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                    {panel.metrics.map(([label, value]) => (
+                      <div key={label} className="rounded-md border border-[#e2e6ec] bg-[#fbfcfd] px-3 py-2">
+                        <div className="text-xs font-medium text-[#64748b]">{label}</div>
+                        <div className="mt-1 text-sm font-semibold text-[#111827]">{value}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    {panel.workflows.map(([label, value]) => (
+                      <div key={label} className="border-t border-[#eef2f7] pt-3 first:border-t-0 first:pt-0">
+                        <div className="text-sm font-semibold text-[#111827]">{label}</div>
+                        <div className="mt-1 text-xs leading-5 text-[#5f6b7a]">{value}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {panel.controls.map((control) => (
+                      <button
+                        key={control}
+                        type="button"
+                        disabled={!canWrite}
+                        className={`rounded-md border px-3 py-2 text-xs font-semibold ${
+                          canWrite
+                            ? "border-[#cfd6df] bg-white text-[#111827] hover:border-[#94a3b8]"
+                            : "border-[#e2e6ec] bg-[#f8fafc] text-[#94a3b8]"
+                        }`}
+                      >
+                        {control}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </section>
 
           <section id="access-control" className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
