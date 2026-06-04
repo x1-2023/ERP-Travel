@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import type { User } from '@prisma/client'
+import { getErpBridgeCurrentUser } from '@/lib/erp-bridge/session'
 
 export class AuthError extends Error {
   status: number
@@ -16,6 +17,9 @@ export class AuthError extends Error {
  * Use in API routes. Throws AuthError if not authenticated.
  */
 export async function getCurrentUser(): Promise<User> {
+  const erpBridgeUser = await getErpBridgeCurrentUser()
+  if (erpBridgeUser) return erpBridgeUser
+
   const supabase = await createClient()
   const { data: { user: authUser }, error } = await supabase.auth.getUser()
 

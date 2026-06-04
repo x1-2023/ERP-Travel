@@ -1,17 +1,21 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { hasValidErpCrmSession } from '@/lib/erp-bridge/middleware-session'
 
 export async function updateSession(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   const { pathname } = request.nextUrl
+  const hasErpBridgeSession = await hasValidErpCrmSession(request)
 
   // Public routes that don't require auth
   const isPublicRoute =
     pathname.startsWith('/login') ||
     pathname.startsWith('/register') ||
     pathname.startsWith('/callback') ||
+    pathname.startsWith('/api/erp-bridge/login') ||
+    pathname.startsWith('/api/erp-bridge/logout') ||
     pathname.startsWith('/api/auth/register') ||
     pathname.startsWith('/api/docs/openapi')
 
@@ -22,9 +26,14 @@ export async function updateSession(request: NextRequest) {
 
   // If Supabase is not configured, block all non-public routes
   if (!supabaseUrl || !supabaseKey || supabaseKey.includes('placeholder')) {
-    if (!isPublicRoute && !isPortalRoute) {
+    if (!isPublicRoute && !isPortalRoute && !hasErpBridgeSession) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
+      return NextResponse.redirect(url)
+    }
+    if (hasErpBridgeSession && isPublicRoute && !pathname.startsWith('/api/')) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/travelops'
       return NextResponse.redirect(url)
     }
     return NextResponse.next({ request })
@@ -57,14 +66,14 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Authenticated user trying to access login/register → redirect to dashboard
-  if (user && isPublicRoute && !pathname.startsWith('/api/')) {
+  if ((user || hasErpBridgeSession) && isPublicRoute && !pathname.startsWith('/api/')) {
     const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
+    url.pathname = '/travelops'
     return NextResponse.redirect(url)
   }
 
   // Unauthenticated user trying to access protected route
-  if (!user && !isPublicRoute) {
+  if (!user && !hasErpBridgeSession && !isPublicRoute) {
     // For API routes, return 401
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(

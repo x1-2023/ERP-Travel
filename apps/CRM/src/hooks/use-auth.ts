@@ -20,26 +20,44 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(true)
 
   // Fetch DB user profile
-  const fetchProfile = useCallback(async (userId: string) => {
+  const fetchProfile = useCallback(async () => {
     try {
       const res = await fetch('/api/auth/me')
       if (res.ok) {
         const data = await res.json()
         setDbUser(data)
+        return data as AuthUser
       }
     } catch {
       // Profile fetch failed silently
     }
+    return null
   }, [])
 
   useEffect(() => {
+    let active = true
+    fetchProfile().then((profile) => {
+      if (!active) return
+      if (profile) {
+        setIsLoading(false)
+      }
+    })
+
+    if (!isSupabaseConfigured()) {
+      setIsLoading(false)
+      return () => {
+        active = false
+      }
+    }
+
     const supabase = createClient()
 
     // Get initial session
     supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!active) return
       setAuthUser(user)
       if (user) {
-        fetchProfile(user.id)
+        fetchProfile()
       }
       setIsLoading(false)
     })
@@ -47,23 +65,32 @@ export function useAuth() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
+        if (!active) return
         const user = session?.user ?? null
         setAuthUser(user)
         if (user) {
-          fetchProfile(user.id)
+          fetchProfile()
         } else {
-          setDbUser(null)
+          fetchProfile().then((profile) => {
+            if (!profile) setDbUser(null)
+          })
         }
         setIsLoading(false)
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
   }, [fetchProfile])
 
   const logout = useCallback(async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
+    if (isSupabaseConfigured()) {
+      const supabase = createClient()
+      await supabase.auth.signOut()
+    }
+    await fetch('/api/erp-bridge/logout', { method: 'POST' }).catch(() => undefined)
     setAuthUser(null)
     setDbUser(null)
     router.push('/login')
@@ -74,7 +101,13 @@ export function useAuth() {
     user: dbUser,
     authUser,
     isLoading,
-    isAuthenticated: !!authUser,
+    isAuthenticated: !!authUser || !!dbUser,
     logout,
   }
+}
+
+function isSupabaseConfigured() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  return Boolean(url && key && !key.includes('placeholder'))
 }

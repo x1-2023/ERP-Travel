@@ -69,7 +69,7 @@ const serviceRows = [
   ["Cloudflare Tunnel", "systemd", "trycloudflare", "External test access"],
 ];
 
-const crmUrl = process.env.NEXT_PUBLIC_CRM_URL || "/crm";
+const crmLaunchUrl = "/api/erp/crm/launch?next=/travelops";
 
 export default function UnifiedErpDashboard() {
   const [sessionLoading, setSessionLoading] = useState(true);
@@ -347,7 +347,7 @@ export default function UnifiedErpDashboard() {
               return (
                 <a
                   key={item.id}
-                  href={item.id === "crm" ? crmUrl : `#${item.id}-control`}
+                  href={item.id === "crm" ? crmLaunchUrl : `#${item.id}-control`}
                   className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-[#374151] hover:bg-[#f0f3f6]"
                 >
                   <Icon size={16} />
@@ -367,7 +367,7 @@ export default function UnifiedErpDashboard() {
               return (
                 <a
                   key={item.id}
-                  href={canRead ? (item.id === "crm" ? crmUrl : `#${item.id}-control`) : "#access-control"}
+                  href={canRead ? (item.id === "crm" ? crmLaunchUrl : `#${item.id}-control`) : "#access-control"}
                   className={`rounded-lg border bg-white p-4 transition ${
                     canRead ? "border-[#d9dde5] hover:border-[#aeb8c4]" : "border-[#e5e7eb] opacity-60"
                   }`}
@@ -437,7 +437,7 @@ export default function UnifiedErpDashboard() {
                 </p>
               </div>
               <a
-                href={crmUrl}
+                href={crmLaunchUrl}
                 className={`rounded-md px-3 py-2 text-sm font-semibold ${
                   hasPermission("crm:read") ? "bg-[#111827] text-white" : "bg-slate-100 text-slate-500"
                 }`}
