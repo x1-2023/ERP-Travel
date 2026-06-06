@@ -6,6 +6,7 @@ import { MicPractice } from "@/components/MicPractice";
 import { MiniLesson } from "@/components/MiniLesson";
 import { MouthAnimator } from "@/components/MouthAnimator";
 import { SyllableView } from "@/components/SyllableView";
+import { ThreeMouthAnimator } from "@/components/ThreeMouthAnimator";
 import { VietnameseMeaning } from "@/components/VietnameseMeaning";
 import { playWithWawaLipsync, type LipsyncPlayback } from "@/lib/lipsync";
 import { speakWord, type SpeechPlayback } from "@/lib/speech";
@@ -30,6 +31,7 @@ export function PronunciationCard({ result, accent, slowMode, onAccentChange, on
   const speechRef = useRef<SpeechPlayback | null>(null);
   const fallbackTimerRef = useRef<number | null>(null);
   const playRequestRef = useRef(0);
+  const [mouthView, setMouthView] = useState<"3d" | "2d">("3d");
   const isPlaybackActive = playbackState.key === pronunciationKey && playbackState.isPlaying;
 
   function clearFallbackTimer() {
@@ -131,10 +133,10 @@ export function PronunciationCard({ result, accent, slowMode, onAccentChange, on
 
   return (
     <article className="rounded-lg border border-white/10 bg-graphite-850/95 p-5 shadow-soft md:p-7">
-      <header className="flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-start md:justify-between">
-        <div>
+      <header className="flex min-w-0 flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-4xl font-bold text-white md:text-5xl">{result.word || "word"}</h1>
+            <h1 className="min-w-0 break-words text-4xl font-bold text-white md:text-5xl">{result.word || "word"}</h1>
             {result.level ? <span className="rounded-md bg-coach-teal/15 px-2 py-1 text-xs font-bold text-coach-teal">{result.level}</span> : null}
             {result.isApproximate ? <span className="rounded-md bg-coach-amber/15 px-2 py-1 text-xs font-bold text-coach-amber">approximate</span> : null}
           </div>
@@ -173,14 +175,43 @@ export function PronunciationCard({ result, accent, slowMode, onAccentChange, on
           </div>
           <AudioControls onPlay={handlePlay} slowMode={slowMode} onSlowModeChange={onSlowModeChange} />
         </div>
-        <MouthAnimator
-          phonemes={result.phonemes}
-          visemes={result.visemes}
-          isPlaying={isPlaybackActive}
-          slowMode={slowMode}
-          activeViseme={isPlaybackActive ? activeViseme : null}
-          source={isPlaybackActive ? playbackSource : "dictionary"}
-        />
+        <div className="space-y-3">
+          <div className="inline-flex rounded-lg border border-white/10 bg-white/[0.04] p-1">
+            <button
+              type="button"
+              onClick={() => setMouthView("3d")}
+              className={`rounded-md px-3 py-1.5 text-xs font-bold transition ${mouthView === "3d" ? "bg-coach-teal text-graphite-950" : "text-slate-300"}`}
+            >
+              3D
+            </button>
+            <button
+              type="button"
+              onClick={() => setMouthView("2d")}
+              className={`rounded-md px-3 py-1.5 text-xs font-bold transition ${mouthView === "2d" ? "bg-coach-teal text-graphite-950" : "text-slate-300"}`}
+            >
+              2D
+            </button>
+          </div>
+          {mouthView === "3d" ? (
+            <ThreeMouthAnimator
+              phonemes={result.phonemes}
+              visemes={result.visemes}
+              isPlaying={isPlaybackActive}
+              slowMode={slowMode}
+              activeViseme={isPlaybackActive ? activeViseme : null}
+              source={isPlaybackActive ? playbackSource : "dictionary"}
+            />
+          ) : (
+            <MouthAnimator
+              phonemes={result.phonemes}
+              visemes={result.visemes}
+              isPlaying={isPlaybackActive}
+              slowMode={slowMode}
+              activeViseme={isPlaybackActive ? activeViseme : null}
+              source={isPlaybackActive ? playbackSource : "dictionary"}
+            />
+          )}
+        </div>
       </div>
 
       <div className="mt-6 space-y-4">

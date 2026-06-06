@@ -76,7 +76,7 @@ export default function HomePage() {
   }
 
   return (
-    <main className="min-h-screen px-4 py-6 md:px-8 md:py-10">
+    <main className="min-h-screen overflow-x-hidden px-4 py-6 md:px-8 md:py-10">
       <div className="mx-auto max-w-[1500px]">
         <nav className="mb-8 flex items-center justify-between">
           <Link href="/" className="text-lg font-black text-white">
@@ -88,7 +88,7 @@ export default function HomePage() {
         </nav>
 
         <section className="mb-8 text-center">
-          <h1 className="text-4xl font-black text-white md:text-6xl">Pronunciation Coach</h1>
+          <h1 className="text-2xl font-black text-white sm:text-4xl md:text-6xl">Pronunciation Coach</h1>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-400 md:text-base">
             Search an English word, hear US or UK pronunciation, review IPA, Vietnamese meaning, syllables, mouth shape, and practice with your microphone.
           </p>

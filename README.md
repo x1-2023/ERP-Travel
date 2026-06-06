@@ -18,7 +18,7 @@ Open `http://localhost:3000`.
 - Slow mode for playback and mouth animation
 - IPA, sounds-like, syllables, stress highlight, and phoneme chips
 - Vietnamese meanings from local dictionary data
-- SVG mouth animation driven by `wawa-lipsync` when local audio is available
+- 3D procedural mouth rig with a 2D SVG fallback, driven by `wawa-lipsync` when local audio is available
 - localStorage learning history with scores
 - `/practice` A1/A2 listening quiz with four options
 - Microphone pronunciation comparison using browser speech recognition when available
@@ -37,6 +37,10 @@ public/audio/common/patient.mp3
 
 The app checks `mp3`, `ogg`, `wav`, and `m4a` in the selected accent folder first, then `common`.
 
+## 3D Mouth Prototype
+
+The default mouth panel is a Three.js procedural 3D prototype. It uses the same viseme stream as the 2D mouth view. The local `Waitress Rig` folder contains a Maya `.ma` rig with facial controls, but it must be opened in Maya and exported/baked to GLB before Three.js can load it.
+
 ## Browser Compatibility
 
 - Audio-driven lipsync uses `wawa-lipsync` and the Web Audio API.
@@ -49,6 +53,7 @@ The app checks `mp3`, `ogg`, `wav`, and `m4a` in the selected accent folder firs
 
 - Web Speech API does not provide exact phoneme timestamps and cannot be analyzed by `wawa-lipsync` directly.
 - Without local audio assets, SVG mouth animation falls back to approximate dictionary phoneme timing.
+- The included Waitress Maya rig is personal-use only and is not ready for commercial web deployment without conversion and license replacement.
 - Microphone score is based on speech recognition text similarity, not professional phonetic scoring.
 - IPA coverage depends on the local dictionary.
 - Vietnamese translation coverage depends on the local dictionary.
