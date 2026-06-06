@@ -8,7 +8,7 @@ import { MouthAnimator } from "@/components/MouthAnimator";
 import { SyllableView } from "@/components/SyllableView";
 import { VietnameseMeaning } from "@/components/VietnameseMeaning";
 import { playWithWawaLipsync, type LipsyncPlayback } from "@/lib/lipsync";
-import { speakWord } from "@/lib/speech";
+import { speakWord, type SpeechPlayback } from "@/lib/speech";
 import type { Accent, PronunciationResult } from "@/types/pronunciation";
 import { useEffect, useRef, useState } from "react";
 
@@ -27,7 +27,9 @@ export function PronunciationCard({ result, accent, slowMode, onAccentChange, on
   const [activeViseme, setActiveViseme] = useState<string | null>(null);
   const [playbackSource, setPlaybackSource] = useState<"dictionary" | "wawa">("dictionary");
   const playbackRef = useRef<LipsyncPlayback | null>(null);
+  const speechRef = useRef<SpeechPlayback | null>(null);
   const fallbackTimerRef = useRef<number | null>(null);
+  const playRequestRef = useRef(0);
   const isPlaybackActive = playbackState.key === pronunciationKey && playbackState.isPlaying;
 
   function clearFallbackTimer() {
@@ -38,9 +40,12 @@ export function PronunciationCard({ result, accent, slowMode, onAccentChange, on
   }
 
   function stopExternalPlayback() {
+    playRequestRef.current += 1;
     clearFallbackTimer();
     playbackRef.current?.stop();
     playbackRef.current = null;
+    speechRef.current?.cancel();
+    speechRef.current = null;
   }
 
   function stopCurrentPlayback() {
@@ -50,38 +55,68 @@ export function PronunciationCard({ result, accent, slowMode, onAccentChange, on
   }
 
   function startDictionaryPlayback() {
+    const requestId = playRequestRef.current;
+
     setPlaybackSource("dictionary");
-    setPlaybackState({ key: pronunciationKey, isPlaying: true });
-    speakWord(result.word, accent, slowMode);
-    fallbackTimerRef.current = window.setTimeout(() => {
-      setPlaybackState((current) => (current.key === pronunciationKey ? { key: null, isPlaying: false } : current));
-      setActiveViseme(null);
-      fallbackTimerRef.current = null;
-    }, Math.max(1300, result.visemes.length * (slowMode ? 620 : 360)));
+    speechRef.current = speakWord(result.word, accent, slowMode, {
+      onStart: () => {
+        if (requestId !== playRequestRef.current) return;
+        setPlaybackState({ key: pronunciationKey, isPlaying: true });
+        fallbackTimerRef.current = window.setTimeout(() => {
+          setPlaybackState((current) => (current.key === pronunciationKey ? { key: null, isPlaying: false } : current));
+          setActiveViseme(null);
+          fallbackTimerRef.current = null;
+        }, Math.max(1800, result.visemes.length * (slowMode ? 760 : 460)));
+      },
+      onEnd: () => {
+        if (requestId !== playRequestRef.current) return;
+        clearFallbackTimer();
+        speechRef.current = null;
+        setActiveViseme(null);
+        setPlaybackState((current) => (current.key === pronunciationKey ? { key: null, isPlaying: false } : current));
+      },
+      onError: () => {
+        if (requestId !== playRequestRef.current) return;
+        clearFallbackTimer();
+        speechRef.current = null;
+        setActiveViseme(null);
+        setPlaybackState({ key: null, isPlaying: false });
+      },
+    });
   }
 
   async function handlePlay() {
     stopCurrentPlayback();
-    setPlaybackState({ key: pronunciationKey, isPlaying: true });
     setPlaybackSource("wawa");
+    const requestId = playRequestRef.current;
 
     const playback = await playWithWawaLipsync({
       word: result.word,
       accent,
       slowMode,
-      onViseme: setActiveViseme,
+      onViseme: (viseme) => {
+        if (requestId === playRequestRef.current) setActiveViseme(viseme);
+      },
       onEnded: () => {
+        if (requestId !== playRequestRef.current) return;
         playbackRef.current = null;
         setPlaybackState((current) => (current.key === pronunciationKey ? { key: null, isPlaying: false } : current));
       },
       onError: () => {
+        if (requestId !== playRequestRef.current) return;
         playbackRef.current = null;
         startDictionaryPlayback();
       },
     });
 
+    if (requestId !== playRequestRef.current) {
+      if (playback.mode === "wawa") playback.stop();
+      return;
+    }
+
     if (playback.mode === "wawa") {
       playbackRef.current = playback;
+      setPlaybackState({ key: pronunciationKey, isPlaying: true });
       return;
     }
 
