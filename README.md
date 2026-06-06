@@ -14,28 +14,41 @@ Open `http://localhost:3000`.
 ## Features
 
 - Word search with local pronunciation dictionary
-- US / UK accent selector using Web Speech API language settings
+- US / UK accent selector with local audio assets first, then Web Speech API fallback
 - Slow mode for playback and mouth animation
 - IPA, sounds-like, syllables, stress highlight, and phoneme chips
 - Vietnamese meanings from local dictionary data
-- SVG viseme-based mouth animation
+- SVG mouth animation driven by `wawa-lipsync` when local audio is available
 - localStorage learning history with scores
 - `/practice` A1/A2 listening quiz with four options
 - Microphone pronunciation comparison using browser speech recognition when available
 - Mini lessons for SH/CH/J, P/B/M, TH, R, F/V, and T/D/N/L
 - Fallback response for unknown words
 
+## Audio-Driven Lipsync
+
+Add pronunciation clips under `public/audio/{us|uk|common}/{word}.mp3` to enable realtime `wawa-lipsync` analysis. Example:
+
+```text
+public/audio/us/patient.mp3
+public/audio/uk/patient.mp3
+public/audio/common/patient.mp3
+```
+
+The app checks `mp3`, `ogg`, `wav`, and `m4a` in the selected accent folder first, then `common`.
+
 ## Browser Compatibility
 
-- Speech playback uses `window.speechSynthesis`.
+- Audio-driven lipsync uses `wawa-lipsync` and the Web Audio API.
+- Fallback speech playback uses `window.speechSynthesis`.
 - Microphone comparison uses `SpeechRecognition` or `webkitSpeechRecognition`.
 - Chrome desktop currently has the best support for speech recognition.
 - Unsupported browsers show a graceful fallback message.
 
 ## Limitations
 
-- Web Speech API does not provide exact phoneme timestamps.
-- SVG mouth animation is approximate and driven by dictionary phonemes, not real audio timing.
+- Web Speech API does not provide exact phoneme timestamps and cannot be analyzed by `wawa-lipsync` directly.
+- Without local audio assets, SVG mouth animation falls back to approximate dictionary phoneme timing.
 - Microphone score is based on speech recognition text similarity, not professional phonetic scoring.
 - IPA coverage depends on the local dictionary.
 - Vietnamese translation coverage depends on the local dictionary.

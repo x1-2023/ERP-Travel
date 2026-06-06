@@ -7,6 +7,8 @@ type Props = {
   visemes: string[];
   isPlaying: boolean;
   slowMode: boolean;
+  activeViseme?: string | null;
+  source?: "dictionary" | "wawa";
 };
 
 type MouthShape = {
@@ -169,6 +171,24 @@ const shapeMap: Record<string, MouthShape> = {
   neutral: restShape,
 };
 
+const wawaVisemeMap: Record<string, string> = {
+  viseme_sil: "neutral",
+  viseme_PP: "closed_lips",
+  viseme_FF: "teeth_lip",
+  viseme_TH: "tongue_teeth",
+  viseme_DD: "tongue_up",
+  viseme_kk: "back_tongue",
+  viseme_CH: "teeth_close",
+  viseme_SS: "teeth_close",
+  viseme_nn: "tongue_up",
+  viseme_RR: "round_tense",
+  viseme_aa: "open_mouth",
+  viseme_E: "wide_smile",
+  viseme_I: "wide_smile",
+  viseme_O: "round_lips",
+  viseme_U: "small_round",
+};
+
 const phonemeLabels: Record<string, string> = {
   EY: "/eɪ/",
   SH: "/ʃ/",
@@ -189,6 +209,12 @@ const phonemeLabels: Record<string, string> = {
 
 function phonemeLabel(phoneme: string): string {
   return phonemeLabels[phoneme] ?? `/${phoneme.toLowerCase()}/`;
+}
+
+function normalizeViseme(viseme: string | null | undefined): string {
+  if (!viseme) return "neutral";
+  if (shapeMap[viseme]) return viseme;
+  return wawaVisemeMap[viseme] ?? "neutral";
 }
 
 function isActive(itemIndex: number, activeIndex: number, isPlaying: boolean): boolean {
@@ -264,26 +290,29 @@ function useAnimatedShape(target: MouthShape, slowMode: boolean): MouthShape {
   return shape;
 }
 
-export function MouthAnimator({ phonemes, visemes, isPlaying, slowMode }: Props) {
+export function MouthAnimator({ phonemes, visemes, isPlaying, slowMode, activeViseme, source = "dictionary" }: Props) {
   const [index, setIndex] = useState(0);
   const sequence = useMemo(() => (visemes.length > 0 ? visemes : ["neutral"]), [visemes]);
+  const normalizedActiveViseme = normalizeViseme(activeViseme);
+  const hasRealtimeViseme = source === "wawa" && Boolean(activeViseme);
 
   useEffect(() => {
-    if (!isPlaying) return;
+    if (!isPlaying || hasRealtimeViseme) return;
     const interval = window.setInterval(() => {
       setIndex((current) => (current + 1) % sequence.length);
     }, slowMode ? 620 : 360);
     return () => window.clearInterval(interval);
-  }, [isPlaying, sequence.length, slowMode]);
+  }, [hasRealtimeViseme, isPlaying, sequence.length, slowMode]);
 
-  const displayIndex = isPlaying ? index : 0;
-  const currentViseme = sequence[displayIndex] ?? "neutral";
+  const realtimeIndex = sequence.findIndex((viseme) => normalizeViseme(viseme) === normalizedActiveViseme);
+  const displayIndex = hasRealtimeViseme ? Math.max(0, realtimeIndex) : isPlaying ? index : 0;
+  const currentViseme = hasRealtimeViseme ? normalizedActiveViseme : sequence[displayIndex] ?? "neutral";
   const nextViseme = sequence[Math.min(displayIndex + 1, sequence.length - 1)] ?? currentViseme;
   const targetShape = useMemo(() => {
     const baseShape = shapeMap[currentViseme] ?? restShape;
-    const nextShape = shapeMap[nextViseme] ?? restShape;
-    return isPlaying ? mixShape(baseShape, nextShape, 0.18) : baseShape;
-  }, [currentViseme, isPlaying, nextViseme]);
+    const nextShape = hasRealtimeViseme ? baseShape : shapeMap[nextViseme] ?? restShape;
+    return isPlaying ? mixShape(baseShape, nextShape, hasRealtimeViseme ? 0 : 0.18) : baseShape;
+  }, [currentViseme, hasRealtimeViseme, isPlaying, nextViseme]);
   const smoothShape = useAnimatedShape(targetShape, slowMode);
   const geometry = mouthGeometry(smoothShape);
   const timeline = phonemes.length > 0 ? phonemes : ["--"];
@@ -294,6 +323,7 @@ export function MouthAnimator({ phonemes, visemes, isPlaying, slowMode }: Props)
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-semibold text-slate-200">Mouth position</h2>
           <span className="grid h-4 w-4 place-items-center rounded-full border border-white/20 text-[10px] text-slate-400">i</span>
+          {source === "wawa" ? <span className="rounded-md bg-coach-teal/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-coach-teal">audio</span> : null}
         </div>
         <button type="button" className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-300">
           View tips

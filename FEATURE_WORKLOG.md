@@ -22,6 +22,7 @@
 - [x] 18. Responsive UI polish
 - [x] 19. README
 - [x] 20. Final validation
+- [x] 21. Audio-driven `wawa-lipsync` integration
 
 ## Notes
 
@@ -40,3 +41,4 @@
 - 2026-06-03: Pre-push validation passed: `npm run lint`, `npm run build`, and sequential `npm run typecheck`.
 - 2026-06-03: Git repository initialized, remote `origin` added, branch renamed to `main`, and initial commit `c50557c` pushed to `origin/main`.
 - 2026-06-03: Follow-up worklog commit `5aa67bf` pushed to `origin/main`. VPS pull/test is pending because this machine has no SSH config or known deploy path for this project; known_hosts contains prior hosts but no username/path mapping.
+- 2026-06-06: Installed `wawa-lipsync` and replaced fixed-timer-only mouth movement with audio-driven viseme analysis when local clips exist. Added local audio asset convention under `public/audio/{us|uk|common}` with Web Speech fallback when clips are missing. Validation passed: `npm run lint`, `npm run typecheck`, `npm run build`, and `npm audit --omit=dev`.

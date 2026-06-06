@@ -7,9 +7,10 @@ import { MiniLesson } from "@/components/MiniLesson";
 import { MouthAnimator } from "@/components/MouthAnimator";
 import { SyllableView } from "@/components/SyllableView";
 import { VietnameseMeaning } from "@/components/VietnameseMeaning";
+import { playWithWawaLipsync, type LipsyncPlayback } from "@/lib/lipsync";
 import { speakWord } from "@/lib/speech";
 import type { Accent, PronunciationResult } from "@/types/pronunciation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
   result: PronunciationResult;
@@ -21,18 +22,77 @@ type Props = {
 };
 
 export function PronunciationCard({ result, accent, slowMode, onAccentChange, onSlowModeChange, onScore }: Props) {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const pronunciationKey = `${result.word}:${accent}:${slowMode ? "slow" : "normal"}`;
+  const [playbackState, setPlaybackState] = useState<{ key: string | null; isPlaying: boolean }>({ key: null, isPlaying: false });
+  const [activeViseme, setActiveViseme] = useState<string | null>(null);
+  const [playbackSource, setPlaybackSource] = useState<"dictionary" | "wawa">("dictionary");
+  const playbackRef = useRef<LipsyncPlayback | null>(null);
+  const fallbackTimerRef = useRef<number | null>(null);
+  const isPlaybackActive = playbackState.key === pronunciationKey && playbackState.isPlaying;
 
-  function handlePlay() {
-    setIsPlaying(true);
+  function clearFallbackTimer() {
+    if (fallbackTimerRef.current !== null) {
+      window.clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
+  }
+
+  function stopExternalPlayback() {
+    clearFallbackTimer();
+    playbackRef.current?.stop();
+    playbackRef.current = null;
+  }
+
+  function stopCurrentPlayback() {
+    stopExternalPlayback();
+    setActiveViseme(null);
+    setPlaybackState({ key: null, isPlaying: false });
+  }
+
+  function startDictionaryPlayback() {
+    setPlaybackSource("dictionary");
+    setPlaybackState({ key: pronunciationKey, isPlaying: true });
     speakWord(result.word, accent, slowMode);
+    fallbackTimerRef.current = window.setTimeout(() => {
+      setPlaybackState((current) => (current.key === pronunciationKey ? { key: null, isPlaying: false } : current));
+      setActiveViseme(null);
+      fallbackTimerRef.current = null;
+    }, Math.max(1300, result.visemes.length * (slowMode ? 620 : 360)));
+  }
+
+  async function handlePlay() {
+    stopCurrentPlayback();
+    setPlaybackState({ key: pronunciationKey, isPlaying: true });
+    setPlaybackSource("wawa");
+
+    const playback = await playWithWawaLipsync({
+      word: result.word,
+      accent,
+      slowMode,
+      onViseme: setActiveViseme,
+      onEnded: () => {
+        playbackRef.current = null;
+        setPlaybackState((current) => (current.key === pronunciationKey ? { key: null, isPlaying: false } : current));
+      },
+      onError: () => {
+        playbackRef.current = null;
+        startDictionaryPlayback();
+      },
+    });
+
+    if (playback.mode === "wawa") {
+      playbackRef.current = playback;
+      return;
+    }
+
+    startDictionaryPlayback();
   }
 
   useEffect(() => {
-    if (!isPlaying) return;
-    const timeout = window.setTimeout(() => setIsPlaying(false), Math.max(1300, result.visemes.length * (slowMode ? 620 : 360)));
-    return () => window.clearTimeout(timeout);
-  }, [isPlaying, result.visemes.length, slowMode]);
+    return stopExternalPlayback;
+    // Playback must reset when the selected pronunciation changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result.word, accent, slowMode]);
 
   return (
     <article className="rounded-lg border border-white/10 bg-graphite-850/95 p-5 shadow-soft md:p-7">
@@ -78,7 +138,14 @@ export function PronunciationCard({ result, accent, slowMode, onAccentChange, on
           </div>
           <AudioControls onPlay={handlePlay} slowMode={slowMode} onSlowModeChange={onSlowModeChange} />
         </div>
-        <MouthAnimator phonemes={result.phonemes} visemes={result.visemes} isPlaying={isPlaying} slowMode={slowMode} />
+        <MouthAnimator
+          phonemes={result.phonemes}
+          visemes={result.visemes}
+          isPlaying={isPlaybackActive}
+          slowMode={slowMode}
+          activeViseme={isPlaybackActive ? activeViseme : null}
+          source={isPlaybackActive ? playbackSource : "dictionary"}
+        />
       </div>
 
       <div className="mt-6 space-y-4">
